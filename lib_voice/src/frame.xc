@@ -1,0 +1,153 @@
+#include <stdio.h>
+#include <string.h>
+#include "viterbi.h"
+#include "kaiser.h"
+#include "voice_frame.h"
+#include "lib_dsp_dct.h"
+#include "lib_dsp_transforms.h"
+#include "log_int.h"
+#include "mel.h"
+
+void frame_initialise(voice_frame *f) {
+    memset(f->samples, 0, FRAME_LENGTH * sizeof(short));
+    memset(f->noise, 0, (FEATURES+1) * sizeof(int));
+    f->index = FRAME_LENGTH - FRAME_INCREMENT;
+    viterbi_clear(&f->v);
+    f->listening = 0;
+    f->matched = 0;
+}
+
+int frame_add_sample_is_full(voice_frame *f, int sample) {
+    f->samples[f->index++] = sample;
+    return f->index == FRAME_LENGTH;
+}
+
+static inline int mul_mel(int x, int y) {
+    long long z = x*(long long) y;
+    return z >> MEL_SHIFT;
+}
+
+static void melCompute(int melValues[FEATURES+2], lib_dsp_fft_complex_t pts[FRAME_LENGTH]) {
+    int sumEven = 0, sumOdd = 0;
+    int mels = 0;
+
+    for(int i = 0; i < FEATURES+2; i++) {
+        melValues[i] = 0;
+    }
+    for(int i = melStart; i < FRAME_LENGTH/2; i++) {
+        sumEven = sumEven + mul_mel(melTable[i], pts[i].re);
+        sumOdd = sumOdd + mul_mel(MEL_MAX - melTable[i], pts[i].re);
+        if (melTable[i] == 0) {
+            melValues[mels++] = sumEven;
+            sumEven = 0;
+        } else if (melTable[i] == MEL_MAX) {
+            melValues[mels++] = sumOdd;
+            sumOdd = 0;
+        }
+    }
+
+    for(int i = 1; i < mels; i++) {
+        unsigned int x = melValues[i];// - noise[i-1];
+        if (x < 10) x = 10;
+        melValues[i-1] = log_int(x);
+    }
+}
+
+
+static inline int mul_31(int a, int b) {
+    return (a * (long long) b) >> 31;
+}
+
+static void window_kaiser_short(lib_dsp_fft_complex_t pts[FRAME_LENGTH], short data[], const int hann[]) {
+    for(int i = 0; i < (FRAME_LENGTH>>1); i++) {
+        int s = hann[i];
+        pts[i].re =                mul_31(data[               i], s);
+        pts[i].im =                0;
+        pts[FRAME_LENGTH-1-i].re = mul_31(data[FRAME_LENGTH-1-i], s);
+        pts[FRAME_LENGTH-1-i].im = 0;
+    }
+}
+
+int printDCTValues = 0;
+int printMELValues = 0;
+
+#define LOUDNESS_GONE_QUIESCENT 40000
+#define LOUDNESS_GONE_NOISY     45000
+int frame_analyse(voice_frame *f) {
+    lib_dsp_fft_complex_t pts[FRAME_LENGTH];
+    int retval;
+    int dctValues[FEATURES+1];
+    int melValues[FEATURES+20];
+
+    window_kaiser_short(pts, f->samples, kaiser_half_90_512);
+    lib_dsp_fft_bit_reverse(pts, FRAME_LENGTH);
+    lib_dsp_fft_forward_complex(pts, FRAME_LENGTH, lib_dsp_sine_512);
+
+    for(int i = 0; i < FRAME_LENGTH/2; i++) {
+        pts[i].re = pts[i].re * pts[i].re + pts[i].im * pts[i].im;
+    }
+    
+    melCompute(melValues, pts);
+    int totalMel = 0;
+    int totalNoise = 0;
+    for(int i = 0; i <= FEATURES; i++) {
+        totalMel += melValues[i];
+    }
+    if (totalMel < LOUDNESS_GONE_NOISY) {
+        for(int i = 0; i <= FEATURES; i++) {
+            f->noise[i] = ((f->noise[i] * 255)>>8) + melValues[i];
+        }
+    } else {
+        for(int i = 0; i <= FEATURES; i++) {
+            int noiseLevel = f->noise[i] >> 8;
+            if (melValues[i] >= noiseLevel) {
+                melValues[i] -= noiseLevel;
+                totalNoise += noiseLevel;
+            } else {
+                totalNoise += melValues[i];
+                melValues[i] = 0;
+            }
+        }        
+    }
+    if (printMELValues) {
+        printf("MEL ");
+        for(int i = 0; i <= FEATURES; i++) {
+            printf("%4d ", melValues[i]);
+        }
+        printf("\n");
+    }
+    dct24(dctValues, melValues);
+    if (printDCTValues) {
+        printf("DCT ");
+        for(int i = 0; i < FEATURES-1; i++) {
+            printf("%6d ", dctValues[i]);
+        }
+        printf("\n");
+    }
+    int loudness = dctValues[0] + totalNoise;
+    
+    if (f->listening) {
+        if (loudness < LOUDNESS_GONE_QUIESCENT) {
+            f->listening = 0;
+            f->matched = viterbi_final(&f->v, &suzy);
+            retval = f->matched ? FRAME_SPOKEN_MATCHED : FRAME_SPOKEN_NOT_MATCHED;
+        }
+    } else {
+        if (loudness > LOUDNESS_GONE_NOISY) {
+            f->listening = 1;
+            viterbi_clear(&f->v);
+        } else {
+            retval = FRAME_QUIET;
+        }
+    }
+    if (f->listening) {
+        f->matched = viterbi_integrate_vector(&f->v, &suzy, dctValues);
+        retval = f->matched ? FRAME_SPEAKING_MATCHING : FRAME_SPEAKING_NOT_MATCHING;
+    }
+    
+    for(int i = 0; i < FRAME_LENGTH - FRAME_INCREMENT; i++) {
+        f->samples[i] = f->samples[i+FRAME_INCREMENT];
+    }
+    f->index -= FRAME_INCREMENT;
+    return retval;
+}
