@@ -3,7 +3,7 @@
 
 #define STATES 4
 #define FEATURES 23
-#define MAXSTEPS 100
+#define MAXSTEPS 92
 
 typedef struct {
     unsigned char expected_start_frac, expected_end_frac;
@@ -19,6 +19,7 @@ typedef struct {
     state states[STATES];
 } hmm;
 
-extern hmm suzy;
+extern hmm suzy_mark;
+extern hmm suzy_al_ro;
 
 #endif

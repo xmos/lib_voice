@@ -7,12 +7,10 @@
 #define FRAME_LENGTH     512
 
 typedef struct {
-    viterbi v;
     short samples[FRAME_LENGTH];
     int noise[FEATURES+1];
     int index;
-    int listening;
-    int matched;
+    int listening, final, initial;
 } voice_frame;
 
 /** Function that initialises a voice frame. Should be called on a declared
@@ -30,19 +28,37 @@ void frame_initialise(voice_frame *f);
 int frame_add_sample_is_full(voice_frame *f, int sample);
 
 #define FRAME_QUIET                   0
-#define FRAME_SPEAKING_MATCHING       1
-#define FRAME_SPEAKING_NOT_MATCHING   2
-#define FRAME_SPOKEN_MATCHED          3
-#define FRAME_SPOKEN_NOT_MATCHED      4
+#define FRAME_SPEAKING                1
+#define FRAME_SPOKEN                  2
 
-/** Function that analyses a frame.
- * This function must be called when frame_add_sample_is_full returns 1. 
- * It will analyse the added speech, and return one of the defines above.
- * It will also create space in the frame to add more data.
- * This function takes no more than XXXX thread cycles to complete.
+/** Function that performs feature extraction This function must be called
+ * when frame_add_sample_is_full returns 1. It will compute the features
+ * that can be passed to the model checker. This function returns one of
+ * the defines above: FRAME_QUIET, FRAME_SPEAKING or FRAME_SPOKEN.
+ * FRAME_QUIET means that there is nothing there. FRAME_SPEAKING means that
+ * voice is being analysed, the model checker below will try and make sense
+ * of it; FRAME_SPOKEN is returned exactly once for each word, the model
+ * checker below will try and make sense of it and return the final verdict
  *
- * \param f      Frame to analyse
+ * \param f         Frame to analyse
+ * \param dctValues Feature vector
  */
-int frame_analyse(voice_frame *f);
+int frame_feature_extract(voice_frame *f, int dctValues[FEATURES+1]);
+
+/** Function that compares extracted features to a model
+ *
+ * This function should be called for each model after
+ * frame_feature_extract. It returns either 1 or 0; 1 to indicate that the
+ * model matches (thus far), 0 to indicate that it does not match (so far).
+ * Only when frame_feature_extract returns FRAME_SPOKEN should this value
+ * be treated as final; when frame_feature_extract returns FRAME_SPEAKING
+ * this values can be ignored or treated as an early assessment.
+ * 
+ * \param f                Frame that has been analysed
+ * \param dctValues        Feature vector
+ * \param keyword_model    Model to compare against
+ * \param keyword_progress structure that holds progress through the model
+*/
+int frame_model_matches(voice_frame *f, int dctValues[FEATURES+1], hmm *keyword_model, viterbi *kewyord_progress);
 
 #endif

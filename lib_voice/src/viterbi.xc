@@ -1,7 +1,7 @@
 #include "viterbi.h"
 #include <stdio.h>
 
-int verbose = 1;
+int verbose = 0;
 
 static int sq(int x) {
     return x*x;
@@ -36,6 +36,13 @@ void viterbi_clear(viterbi *v) {
 }
 
 int viterbi_integrate_vector(viterbi *v, hmm *model, int vector[FEATURES]) {
+    if (v->fail) {
+        return 0;
+    }
+    if (v->step >= MAXSTEPS-1) {
+        v->fail = 1;
+        return 0;
+    }
     v->step++;
     for(int s = STATES-1; s > 0; s--) {
         int p = probability_vector(vector, s, v->step, v, model);
@@ -58,8 +65,6 @@ int viterbi_integrate_vector(viterbi *v, hmm *model, int vector[FEATURES]) {
     }
     if (max > model->EARLY_FAIL) {
         v->fail = 1;
-    }
-    if (v->fail) {
         return 0;
     }
     return v->sum[maxs]/v->step < model->SUCCESS_AVG;

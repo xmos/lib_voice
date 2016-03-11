@@ -12,9 +12,9 @@ void frame_initialise(voice_frame *f) {
     memset(f->samples, 0, FRAME_LENGTH * sizeof(short));
     memset(f->noise, 0, (FEATURES+1) * sizeof(int));
     f->index = FRAME_LENGTH - FRAME_INCREMENT;
-    viterbi_clear(&f->v);
     f->listening = 0;
-    f->matched = 0;
+    f->final = 0;
+    f->initial = 0;
 }
 
 int frame_add_sample_is_full(voice_frame *f, int sample) {
@@ -73,10 +73,9 @@ int printMELValues = 0;
 
 #define LOUDNESS_GONE_QUIESCENT 40000
 #define LOUDNESS_GONE_NOISY     45000
-int frame_analyse(voice_frame *f) {
+
+int frame_feature_extract(voice_frame *f, int dctValues[FEATURES+1]) {
     lib_dsp_fft_complex_t pts[FRAME_LENGTH];
-    int retval;
-    int dctValues[FEATURES+1];
     int melValues[FEATURES+20];
 
     window_kaiser_short(pts, f->samples, kaiser_half_90_512);
@@ -124,30 +123,42 @@ int frame_analyse(voice_frame *f) {
         }
         printf("\n");
     }
-    int loudness = dctValues[0] + totalNoise;
-    
-    if (f->listening) {
-        if (loudness < LOUDNESS_GONE_QUIESCENT) {
-            f->listening = 0;
-            f->matched = viterbi_final(&f->v, &suzy);
-            retval = f->matched ? FRAME_SPOKEN_MATCHED : FRAME_SPOKEN_NOT_MATCHED;
-        }
-    } else {
-        if (loudness > LOUDNESS_GONE_NOISY) {
-            f->listening = 1;
-            viterbi_clear(&f->v);
-        } else {
-            retval = FRAME_QUIET;
-        }
-    }
-    if (f->listening) {
-        f->matched = viterbi_integrate_vector(&f->v, &suzy, dctValues);
-        retval = f->matched ? FRAME_SPEAKING_MATCHING : FRAME_SPEAKING_NOT_MATCHING;
-    }
     
     for(int i = 0; i < FRAME_LENGTH - FRAME_INCREMENT; i++) {
         f->samples[i] = f->samples[i+FRAME_INCREMENT];
     }
     f->index -= FRAME_INCREMENT;
-    return retval;
+    
+    int loudness = dctValues[0] + totalNoise;
+    if (f->listening) {
+        f->initial = 0;
+        if (loudness < LOUDNESS_GONE_QUIESCENT) {
+            f->listening = 0;
+            f->final = 1;
+            return FRAME_SPOKEN;
+        }
+        return FRAME_SPEAKING;
+    } else {
+        f->final = 0;
+        if (loudness > LOUDNESS_GONE_NOISY) {
+            f->initial = 1;
+            f->listening = 1;
+            return FRAME_SPEAKING;
+        }
+        return FRAME_QUIET;
+    }
+    
+}
+
+int frame_model_matches(voice_frame *f, int dctValues[FEATURES+1], hmm *keyword_model, viterbi *keyword_progress) {
+    int matched = 0;
+    if (f->listening) {
+        if (f->initial) {
+            viterbi_clear(keyword_progress);
+        }
+        matched = viterbi_integrate_vector(keyword_progress, keyword_model, dctValues);
+    } else if (f->final) {
+        matched = viterbi_final(keyword_progress, keyword_model);
+    }
+    return matched;
 }
