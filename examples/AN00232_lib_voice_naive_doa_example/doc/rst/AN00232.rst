@@ -26,8 +26,8 @@ To start using the microphone array library library, you need to add
 You can then access the microphone array library functions in your source
 code via the ``lib_voice_naive_doa.h`` header file:
 
-.. literalinclude:: app_phase_aligned_example.xc
-   :start-on: include "lib_voice_naive_doa.h"
+.. literalinclude:: app_doa_example.xc
+   :start-on: include "lib_voice
    :end-before: include "mic_array.h"
 
                 
@@ -64,20 +64,27 @@ The leds will indicate the direction of arrival.
 Task setup
 ----------
 
-The DOA example comprises a single function call::
+The DOA example comprises a single function call:
 
 .. literalinclude:: app_doa_example.xc
    :start-on: int angle = 
-   :end-on: lb.set_led_brightness
+   :end-before: lb.set_led_brightness
 
 This function call passes the sample values of each of the six microphones
 to the DOA estimator, which will return one of two sorts of values:
 
-* **LIB_VOICE_DOA_NOTHING**: indicating that it does not know the
-  direction; there is not enough sound to calculate a direction
+* The value **LIB_VOICE_DOA_NOTHING** indicates that there is not enough
+  sound to calculate a direction
 
-* a value between 0 and 359 (inclusive), indicating the angle of the
-  sound.
+* a value between 0 and 359 (inclusive), indicates the angle of the sound.
+  An angle of zero indicates that the sound came from microphone 1, and
+  positive angles move counter clockwise on the board, as shown in Figure 1.
+
+.. figure:: angle.pdf
+            :width: 50%
+
+            How to interpret the return value
+
 
 The calculation assumes that:
 
@@ -87,13 +94,6 @@ The calculation assumes that:
 
 * That the sound originates roughly planar to the 6 microphones
   
-An angle of zero indicates that the sound came from microphone 1, and
-positive angles move counter clockwise on the board, as shown below:
-
-.. figure:: angle.pdf
-            :width: 50%
-
-
 
 |appendix|
 |newpage|

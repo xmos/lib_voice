@@ -1,6 +1,7 @@
 #ifndef VOICE_FRAME_H
 #define VOICE_FRAME_H
 
+#include "stdint.h"
 #include "viterbi.h"
 
 #define FRAME_INCREMENT  160
@@ -43,7 +44,7 @@ int frame_add_sample_is_full(voice_frame *f, int sample);
  * \param f         Frame to analyse
  * \param dctValues Feature vector
  */
-int frame_feature_extract(voice_frame *f, int dctValues[FEATURES+1]);
+int frame_feature_extract(voice_frame *f, int32_t dctValues[FEATURES+1]);
 
 /** Function that compares extracted features to a model
  *

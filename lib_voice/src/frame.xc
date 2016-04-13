@@ -4,7 +4,7 @@
 #include "kaiser.h"
 #include "voice_frame.h"
 #include "lib_dsp_dct.h"
-#include "lib_dsp_transforms.h"
+#include "lib_dsp_fft.h"
 #include "log_int.h"
 #include "mel.h"
 
@@ -27,7 +27,7 @@ static inline int mul_mel(int x, int y) {
     return z >> MEL_SHIFT;
 }
 
-static void melCompute(int melValues[FEATURES+2], lib_dsp_fft_complex_t pts[FRAME_LENGTH]) {
+static void melCompute(int32_t melValues[FEATURES+2], lib_dsp_fft_complex_t pts[FRAME_LENGTH]) {
     int sumEven = 0, sumOdd = 0;
     int mels = 0;
 
@@ -74,13 +74,13 @@ int printMELValues = 0;
 #define LOUDNESS_GONE_QUIESCENT 40000
 #define LOUDNESS_GONE_NOISY     45000
 
-int frame_feature_extract(voice_frame *f, int dctValues[FEATURES+1]) {
+int frame_feature_extract(voice_frame *f, int32_t dctValues[FEATURES+1]) {
     lib_dsp_fft_complex_t pts[FRAME_LENGTH];
-    int melValues[FEATURES+20];
+    int32_t melValues[FEATURES+20];
 
     window_kaiser_short(pts, f->samples, kaiser_half_90_512);
     lib_dsp_fft_bit_reverse(pts, FRAME_LENGTH);
-    lib_dsp_fft_forward_complex(pts, FRAME_LENGTH, lib_dsp_sine_512);
+    lib_dsp_fft_forward(pts, FRAME_LENGTH, lib_dsp_sine_512);
 
     for(int i = 0; i < FRAME_LENGTH/2; i++) {
         pts[i].re = pts[i].re * pts[i].re + pts[i].im * pts[i].im;
@@ -115,7 +115,7 @@ int frame_feature_extract(voice_frame *f, int dctValues[FEATURES+1]) {
         }
         printf("\n");
     }
-    dct24(dctValues, melValues);
+    lib_dsp_dct_forward24(dctValues, melValues);
     if (printDCTValues) {
         printf("DCT ");
         for(int i = 0; i < FEATURES-1; i++) {
