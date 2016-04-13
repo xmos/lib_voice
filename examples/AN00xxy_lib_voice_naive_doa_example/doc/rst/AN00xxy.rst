@@ -1,0 +1,129 @@
+.. include:: ../../README.rst
+
+|newpage|
+
+Overview
+--------
+
+This demo application shows a simple use of the Direction-Of-Arrival
+library. It uses the microphone array library to get samples from 6
+libraries. Please see AN00220 for details on this part,
+
+|newpage|
+
+The DOA call
+------------
+
+
+The example in this note uses the microphone array library and shows a simple program
+that interfaces to to the PDM microphones, decimates the PDM and finally packs it into frames.
+
+To start using the microphone array library library, you need to add
+``lib_voice`` to your ``Makefile``::
+
+        USED_MODULES = ... lib_voice ...
+
+You can then access the microphone array library functions in your source
+code via the ``lib_voice_naive_doa.h`` header file:
+
+.. literalinclude:: app_phase_aligned_example.xc
+   :start-on: include "lib_voice_naive_doa.h"
+   :end-before: include "mic_array.h"
+
+                
+Demo Hardware Setup
+-------------------
+
+#. Connect the xTAG-2 or xTAG-3 to Microphone Array Ref Design v1.
+   
+#. Connect the xTAG-2 or xTAG-3 USB connector to the USB connector on
+   your development PC using a USB cable.
+   
+#. Connect the Microphone Array Ref Design v1 to your development PC
+   using another USB cable.
+
+Launching the demo application
+------------------------------
+
+Once the application source code is imported into the tools you can then
+build the project which will generate the binary file required to run the
+demo application.
+
+Once the application has been built you need to download the application
+binary code onto the Microphone Array Ref Design v1. Here you use the
+tools to load the application over JTAG onto the xCORE multicore
+microcontroller.
+
+Then click **Run**.
+
+Alternatively, from the command line build the application, by doing a call
+to ``xmake``, then run using ``xrun app_doa_example.xe``.
+
+The leds will indicate the direction of arrival.
+
+Task setup
+----------
+
+The DOA example comprises a single function call::
+
+.. literalinclude:: app_doa_example.xc
+   :start-on: int angle = 
+   :end-on: lb.set_led_brightness
+
+This function call passes the sample values of each of the six microphones
+to the DOA estimator, which will return one of two sorts of values:
+
+* **LIB_VOICE_DOA_NOTHING**: indicating that it does not know the
+  direction; there is not enough sound to calculate a direction
+
+* a value between 0 and 359 (inclusive), indicating the angle of the
+  sound.
+
+The calculation assumes that:
+
+* there are 6 microphones in a hexagonal arrangement with a radius of 48 mm
+
+* the sample rate is 16 kHz
+
+* That the sound originates roughly planar to the 6 microphones
+  
+An angle of zero indicates that the sound came from microphone 1, and
+positive angles move counter clockwise on the board, as shown below:
+
+.. figure:: angle.pdf
+            :width: 50%
+
+
+
+|appendix|
+|newpage|
+
+References
+----------
+
+.. nopoints::
+
+  * XMOS Tools User Guide
+
+    http://www.xmos.com/published/xtimecomposer-user-guide
+
+  * XMOS xCORE Programming Guide
+
+    http://www.xmos.com/published/xmos-programming-guide
+
+  * XMOS Microphone Array Library
+
+    http://www.xmos.com/support/libraries/lib_mic_array
+
+|newpage|
+
+Full source code listing
+------------------------
+
+Source code for app_doa_example.xc
+............................................
+
+.. literalinclude:: app_doa_example.xc
+  :largelisting:
+
+|newpage|
