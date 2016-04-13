@@ -1,5 +1,5 @@
-How to use the lib_voice naive DOA library
-==========================================
+How to use the DOA (direction of arrival) library
+=================================================
 
 .. version:: 0.1.0
 
@@ -10,6 +10,8 @@ Required tools and libraries
 ............................
 
 .. appdeps::
+   
+   lib_mic_array
 
 Required hardware
 .................
