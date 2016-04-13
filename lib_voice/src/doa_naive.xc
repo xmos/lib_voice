@@ -142,6 +142,7 @@ int lib_voice_doa_naive_incorporate(struct lib_voice_doa &d,
         if (usable) {
             d.omaxi = maxi * 30;
         } else {
+//            d.omaxi = maxi * 30;
             d.omaxi = LIB_VOICE_DOA_NOTHING;
         }
     }
