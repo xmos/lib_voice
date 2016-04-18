@@ -37,6 +37,9 @@ static void finish_correlation(struct lib_voice_doa_correlation &c, int angle, i
     } else {
         res = 0;
     }
+#ifdef PRINT_CORR
+    printf("%7lld %2d  ", res, angle);
+#endif
     c.lt = (c.lt + 127 * res) >> 7;
     if (rear_steer) {
         support[angle] += res;
@@ -58,6 +61,12 @@ static void finish_correlation(struct lib_voice_doa_correlation &c, int angle, i
         }
         support[angle] += res;
     }
+#ifdef PRINT_CORR
+    for(int i = 0; i < 12; i++) {
+        printf("%6d ", support[i]);
+    }
+    printf("\n");
+#endif
     init_correlation(c);
 }
 
@@ -124,6 +133,13 @@ int lib_voice_doa_naive_incorporate(struct lib_voice_doa &d,
         for(int i = 0; i < 12; i++) {
             d.ltsupport[i] = (d.ltsupport[i]*15 + support[i] * level) >> 4;
         }
+#ifdef PRINT_CORR
+        printf("******* **  ");
+        for(int i = 0; i < 12; i++) {
+            printf("%6d ", d.ltsupport[i]);
+        }
+        printf("\n");
+#endif
         int sum = d.ltsupport[0];
         int max = d.ltsupport[0];
         int min = d.ltsupport[0];
@@ -138,11 +154,16 @@ int lib_voice_doa_naive_incorporate(struct lib_voice_doa &d,
                 min = d.ltsupport[i];
             }
         }
-        int usable = level > 0 && min > 3*max/4 && max > 100;
+        int usable = level > 0 && max > 100;
+#ifndef DONT_USE_MIN
+        usable = usable && min > 3*max/4;
+#endif
+#ifdef PRINT_CORR
+        printf("Level %d min %d max %d usable %d\n", level, min, max, usable);
+#endif
         if (usable) {
             d.omaxi = maxi * 30;
         } else {
-//            d.omaxi = maxi * 30;
             d.omaxi = LIB_VOICE_DOA_NOTHING;
         }
     }

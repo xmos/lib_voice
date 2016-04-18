@@ -1,1 +1,7 @@
 .DS_Store
+examples/AN00232_lib_voice_naive_doa_example/.build/
+examples/AN00232_lib_voice_naive_doa_example/bin/
+examples/AN00232_lib_voice_naive_doa_example/doc/rst/_build/
+tests/test_doa_go_around/.build/
+tests/test_doa_go_around/bin/
+
