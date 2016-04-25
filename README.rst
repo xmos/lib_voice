@@ -23,7 +23,7 @@ Typical Resource Usage
 Software version and dependencies
 .................................
 
-none
+.. libdeps::
 
 Related application notes
 .........................
