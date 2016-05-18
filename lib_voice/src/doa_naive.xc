@@ -29,7 +29,7 @@ static void finish_correlation(struct lib_voice_doa_correlation &c, int angle, i
     long long d0 = c.n * c.x2 - c.x * c.x;
     long long d1 = c.n * c.y2 - c.y * c.y;
     res = res >> 28;
-    res = res < 0 ? 
+    res = res < 0 ? res * -res : res * res;
     d0 = d0 >> 32;
     d1 = d1 >> 32;
     d0 = (d0 * d1);
