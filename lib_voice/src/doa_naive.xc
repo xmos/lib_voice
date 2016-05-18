@@ -23,12 +23,13 @@ static void incorporate_correlation(int x, int y, struct lib_voice_doa_correlati
     c.xy += x * (long long) y;
 }
 
+#if 0
 static void finish_correlation(struct lib_voice_doa_correlation &c, int angle, int support[12], int rear_steer) {
     long long res = c.n * c.xy - c.x * c.y;
     long long d0 = c.n * c.x2 - c.x * c.x;
     long long d1 = c.n * c.y2 - c.y * c.y;
     res = res >> 28;
-    res = res < 0 ? res * -res : res * res;
+    res = res < 0 ? 
     d0 = d0 >> 32;
     d1 = d1 >> 32;
     d0 = (d0 * d1);
@@ -39,6 +40,41 @@ static void finish_correlation(struct lib_voice_doa_correlation &c, int angle, i
     }
 #ifdef PRINT_CORR
     printf("%7lld %2d  ", res, angle);
+#endif
+#else
+
+#define  ldivu(D,R,H,L,N) asm("ldivu %0,%1,%2,%3,%4" : "=r" (D), "=r" (R): "r" (H), "r" (L), "r" (N))
+
+static void finish_correlation(struct lib_voice_doa_correlation &c, int angle, int support[12], int rear_steer) {
+   long long corr = c.n * c.xy - c.x * c.y;
+   long long d0 = c.n * c.x2 - c.x * c.x;
+   long long d1 = c.n * c.y2 - c.y * c.y;
+   unsigned int d0_h = d0 >> 32;
+   unsigned int d1_h = d1 >> 32;
+   unsigned long long dd = d0_h * (long long) d1_h;
+   corr = corr >> 28;
+   unsigned long long scorr = corr*corr;
+   int res;
+   unsigned zeroes;
+   asm("clz %0, %1" : "=r" (zeroes) : "r" ((unsigned) (dd >> 32)) );
+   int shift = 32 - zeroes;
+   dd >>= shift;
+   scorr >>= shift;
+   if (dd != 0) {
+       int modulo_tmp;
+       ldivu(res, modulo_tmp, (unsigned) (scorr >> 32), (unsigned) (scorr & 0xFFFFFFFFULL), (unsigned) (dd & 0xFFFFFFFFULL));
+       if (corr < 0) {
+           res = -res;
+       } else {
+           res = res;
+       }
+   } else {
+       res = 0;
+   }
+#ifdef PRINT_CORR
+   printf("%7lld %2d  ", res, angle);
+#endif
+
 #endif
     c.lt = (c.lt + 127 * res) >> 7;
     if (rear_steer) {
