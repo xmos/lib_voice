@@ -17,7 +17,7 @@ Required hardware
 .................
 
 The example code provided with the application has been implemented
-and tested on the xCORE-200 arary microphone board.
+and tested on the xCORE-200 array microphone board.
 
 Prerequisites
 .............

@@ -13,7 +13,7 @@ struct lib_voice_doa_correlation {
 
 /* This needs some refactoring
  */
-struct lib_voice_doa {
+typedef struct lib_voice_doa {
     struct lib_voice_doa_correlation c62a, c63a, c13a, c14a, c24a, c25a;
     struct lib_voice_doa_correlation c36, c63, c41, c14, c52, c25;
     int och6, och1, och2, och3, och4, och5;
@@ -22,7 +22,7 @@ struct lib_voice_doa {
     int ooooch6, ooooch1, ooooch2, ooooch3, ooooch4, ooooch5;
     int omaxi;
     int ltsupport[12];
-};
+} lib_voice_doa_t;
 
 /** Function that initialises the DOA mechanism. Call once, with a DOA structure
  *

@@ -1,6 +1,9 @@
 Voice Library
 =============
 
+Summary
+-------
+
 A library of components for use with voice.
 
 Features
@@ -20,7 +23,7 @@ Typical Resource Usage
 Software version and dependencies
 .................................
 
-none
+.. libdeps::
 
 Related application notes
 .........................
