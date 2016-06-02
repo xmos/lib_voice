@@ -150,7 +150,7 @@ int frame_feature_extract(voice_frame *f, int32_t dctValues[FEATURES+1]) {
     
 }
 
-int frame_model_matches(voice_frame *f, int dctValues[FEATURES+1], hmm *keyword_model, viterbi *keyword_progress) {
+int frame_model_matches(voice_frame *f, int32_t dctValues[FEATURES+1], hmm *keyword_model, viterbi *keyword_progress) {
     int matched = 0;
     if (f->listening) {
         if (f->initial) {
