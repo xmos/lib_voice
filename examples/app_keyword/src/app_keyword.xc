@@ -13,6 +13,8 @@ on tile[0]: in buffered port:32 p_pdm_mics  = XS1_PORT_8B;
 on tile[0]: in port p_mclk                  = XS1_PORT_1F;
 on tile[0]: clock pdmclk                    = XS1_CLKBLK_1;
 
+on tile[1]: port p_i2c                      =  XS1_PORT_4E; // Bit 0: SCLK, Bit 1: SDA
+
 // LEDs
 mabs_led_ports_t leds = on tile[0]: MIC_BOARD_SUPPORT_LED_PORTS;
 // Buttons
@@ -27,10 +29,14 @@ on tile[0]: in port p_buttons = MIC_BOARD_SUPPORT_BUTTON_PORTS;
 int data[DECIMATOR_COUNT*DECIMATOR_CH_COUNT]
          [THIRD_STAGE_COEFS_PER_STAGE*DECIMATION_FACTOR];
 
-void example(streaming chanend c_ds_output[DECIMATOR_COUNT], client interface mabs_led_button_if lb) {
+void example(streaming chanend c_ds_output[DECIMATOR_COUNT],
+             client interface mabs_led_button_if lb,
+             client i2c_master_if i2c) {
     voice_frame f;
     viterbi v_sm, v_sa;
     int32_t features[FEATURES+1];
+
+    mabs_init_pll(i2c, ETH_MIC_ARRAY);
 
     frame_initialise(&f);
 
@@ -133,7 +139,8 @@ void example(streaming chanend c_ds_output[DECIMATOR_COUNT], client interface ma
 }
 
 int main(){
-  interface mabs_led_button_if lb[1];
+    interface mabs_led_button_if lb[1];
+    interface i2c_master_if i2c[1];
     par{
         on tile[0]:{
             configure_clock_src_divide(pdmclk, p_mclk, 4);
@@ -148,9 +155,12 @@ int main(){
                 mic_array_pdm_rx(p_pdm_mics, c_pdm_to_dec[0], c_pdm_to_dec[1]);
                 mic_array_decimate_to_pcm_4ch(c_pdm_to_dec[0], c_ds_output[0], MIC_ARRAY_NO_INTERNAL_CHANS);
                 mic_array_decimate_to_pcm_4ch(c_pdm_to_dec[1], c_ds_output[1], MIC_ARRAY_NO_INTERNAL_CHANS);
-                example(c_ds_output, lb[0]);
+                example(c_ds_output, lb[0], i2c[0]);
                 mabs_button_and_led_server(lb, 1, leds, p_buttons);
             }
+        }
+        on tile[1]:{
+            i2c_master_single_port(i2c, 1, p_i2c, 100, 0, 1, 0);
         }
     }
     return 0;
