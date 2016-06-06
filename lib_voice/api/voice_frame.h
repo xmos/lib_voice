@@ -1,7 +1,7 @@
 #ifndef VOICE_FRAME_H
 #define VOICE_FRAME_H
 
-#include "stdint.h"
+#include <stdint.h>
 #include "viterbi.h"
 
 #define FRAME_INCREMENT  160
@@ -60,6 +60,6 @@ int frame_feature_extract(voice_frame *f, int32_t dctValues[FEATURES+1]);
  * \param keyword_model    Model to compare against
  * \param keyword_progress structure that holds progress through the model
 */
-int frame_model_matches(voice_frame *f, int dctValues[FEATURES+1], hmm *keyword_model, viterbi *kewyord_progress);
+int frame_model_matches(voice_frame *f, int32_t dctValues[FEATURES+1], hmm *keyword_model, viterbi *kewyord_progress);
 
 #endif

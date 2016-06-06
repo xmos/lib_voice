@@ -7,11 +7,11 @@ static int sq(int x) {
     return x*x;
 }
 
-static int log_gaussian(int av, int sdev, int val) {
+static int log_gaussian(int av, int sdev, int32_t val) {
     return sq(val - av)/(sdev*sdev);
 }
     
-static int probability_vector(int vector[FEATURES], int state, int step, viterbi *v, hmm *model) {
+static int probability_vector(int32_t vector[FEATURES], int state, int step, viterbi *v, hmm *model) {
     int prod = 0;
     for(int i = 0; i < model->USED_FEATURES; i++) {
         int prob = log_gaussian(model->states[state].gauss[i].av,
@@ -35,7 +35,7 @@ void viterbi_clear(viterbi *v) {
     v->step = 0;
 }
 
-int viterbi_integrate_vector(viterbi *v, hmm *model, int vector[FEATURES]) {
+int viterbi_integrate_vector(viterbi *v, hmm *model, int32_t vector[FEATURES+1]) {
     if (v->fail) {
         return 0;
     }
