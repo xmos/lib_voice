@@ -21,5 +21,6 @@ typedef struct {
 
 extern hmm suzy_mark;
 extern hmm suzy_al_ro;
+extern hmm suzy_post_illusonic_ro;
 
 #endif
