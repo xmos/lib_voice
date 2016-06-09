@@ -1,7 +1,7 @@
 #ifndef STATES_H
 #define STATES_H
 
-#define STATES 4
+#define STATES 6
 #define FEATURES 23
 #define MAXSTEPS 92
 
@@ -22,5 +22,7 @@ typedef struct {
 extern hmm suzy_mark;
 extern hmm suzy_al_ro;
 extern hmm suzy_post_illusonic_ro;
+
+extern hmm alexa_ro;
 
 #endif

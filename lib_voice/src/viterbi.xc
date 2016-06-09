@@ -1,7 +1,7 @@
 #include "viterbi.h"
 #include <stdio.h>
 
-int verbose = 0;
+int verbose = 1;
 
 static int sq(int x) {
     return x*x;
