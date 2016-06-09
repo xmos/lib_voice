@@ -4,6 +4,9 @@
 #include <string.h>
 #include <print.h>
 
+#define ALEXA 1
+
+
 #include "mic_array.h"
 #include "voice_frame.h"
 #include "mic_array_board_support.h"
@@ -93,8 +96,14 @@ void example(streaming chanend c_ds_output[DECIMATOR_COUNT],
 
                 if (frame_add_sample_is_full(&f, data)) {      // This won’t take any time
                     int status = frame_feature_extract(&f, features);    // This takes some time, once every 160 samples (10 ms)
+
+#ifdef ALEXA
+                    int matchesm = frame_model_matches(&f, features, &alexa_ro, &v_sm);
+                    int matchesa = 0;
+#else
                     int matchesm = frame_model_matches(&f, features, &suzy_mark, &v_sm);
                     int matchesa = frame_model_matches(&f, features, &suzy_al_ro, &v_sa);
+#endif
 
                     printint(status);
                     count++;
