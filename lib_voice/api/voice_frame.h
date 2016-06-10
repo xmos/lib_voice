@@ -54,11 +54,11 @@ int frame_feature_extract(voice_frame *f, int32_t dctValues[FEATURES+1]);
  * Only when frame_feature_extract returns FRAME_SPOKEN should this value
  * be treated as final; when frame_feature_extract returns FRAME_SPEAKING
  * this values can be ignored or treated as an early assessment.
- * 
+ *
  * \param f                Frame that has been analysed
  * \param dctValues        Feature vector
  * \param keyword_model    Model to compare against
- * \param keyword_progress structure that holds progress through the model
+ * \param keyword_progress Structure that holds progress through the model
 */
 int frame_model_matches(voice_frame *f, int32_t dctValues[FEATURES+1], hmm *keyword_model, viterbi *kewyord_progress);
 
