@@ -50,30 +50,30 @@ void example(streaming chanend c_ds_output[DECIMATOR_COUNT],
                 THIRD_STAGE_COEFS_PER_STAGE*DECIMATION_FACTOR*sizeof(int));
 
         mic_array_decimator_conf_common_t dcc = {
-                MIC_ARRAY_MAX_FRAME_SIZE_LOG2, // Frame size log 2 is set to 0, i.e. one sample per channel will be present in each frame
-                1, // DC offset elimination is turned on
-                0, // Index bit reversal is off
-                0, // No windowing function is being applied
-                DECIMATION_FACTOR,// The decimation factor is set to 6
-                g_third_stage_div_6_fir, // This corresponds to a 16kHz output hence this coef array is used
-                0, // Gain compensation is turned off
-                FIR_COMPENSATOR_DIV_6, // FIR compensation is set to the corresponding coefficients
-                DECIMATOR_NO_FRAME_OVERLAP, // Frame overlapping is turned off
-                FRAME_BUFFER_COUNT  // The number of buffers in the audio array
+            MIC_ARRAY_MAX_FRAME_SIZE_LOG2, // Frame size log 2 is set to 0, i.e. one sample per channel will be present in each frame
+            1, // DC offset elimination is turned on
+            0, // Index bit reversal is off
+            0, // No windowing function is being applied
+            DECIMATION_FACTOR,// The decimation factor is set to 6
+            g_third_stage_div_6_fir, // This corresponds to a 16kHz output hence this coef array is used
+            0, // Gain compensation is turned off
+            FIR_COMPENSATOR_DIV_6, // FIR compensation is set to the corresponding coefficients
+            DECIMATOR_NO_FRAME_OVERLAP, // Frame overlapping is turned off
+            FRAME_BUFFER_COUNT  // The number of buffers in the audio array
         };
 
         mic_array_decimator_config_t dc[DECIMATOR_COUNT] = {
             {
-                    &dcc,
-                    data[0],     // The storage area for the output decimator
-                    {INT_MAX, INT_MAX, INT_MAX, INT_MAX},  // Microphone gain compensation (turned off)
-                    4           // Enabled channel count (currently must be 4)
+                &dcc,
+                data[0],     // The storage area for the output decimator
+                {INT_MAX, INT_MAX, INT_MAX, INT_MAX},  // Microphone gain compensation (turned off)
+                4           // Enabled channel count (currently must be 4)
             },
             {
-                    &dcc,
-                    data[4],     // The storage area for the output decimator
-                    {INT_MAX, INT_MAX, INT_MAX, INT_MAX}, // Microphone gain compensation (turned off)
-                    4           // Enabled channel count (currently must be 4)
+                &dcc,
+                data[4],     // The storage area for the output decimator
+                {INT_MAX, INT_MAX, INT_MAX, INT_MAX}, // Microphone gain compensation (turned off)
+                4           // Enabled channel count (currently must be 4)
             }
         };
         mic_array_decimator_configure(c_ds_output, DECIMATOR_COUNT, dc);
