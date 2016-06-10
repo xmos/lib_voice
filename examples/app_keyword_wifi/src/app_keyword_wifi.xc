@@ -2,10 +2,23 @@
 #include <platform.h>
 #include <xs1.h>
 #include <string.h>
-#include <print.h>
+#include "debug_print.h"
 
-#define ALEXA 1
+#define KEYWORD_SUZY  0
+#define KEYWORD_ALEXA 1
 
+#define SPEAKER_HM 1
+#define SPEAKER_ML 1
+#define SPEAKER_RO 1
+#define SPEAKER_SC 1
+
+enum {
+    NO_MATCH = 0,
+    MATCH_HM,
+    MATCH_ML,
+    MATCH_RO,
+    MATCH_SC
+};
 
 #include "mic_array.h"
 #include "voice_frame.h"
@@ -37,14 +50,14 @@ void example(streaming chanend c_ds_output[DECIMATOR_COUNT],
              client interface mabs_led_button_if lb,
              client i2c_master_if i2c) {
     voice_frame f;
-    viterbi v_sm, v_sa;
+    viterbi v_s_hm, v_s_ml, v_s_ro, v_s_sc;
     int32_t features[FEATURES+1];
 
     mabs_init_pll(i2c, WIFI_MIC_ARRAY);
 
     frame_initialise(&f);
 
-    printstr("Starting\n");
+    debug_printf("Starting\n");
 
     unsafe{
         mic_array_frame_time_domain audio[FRAME_BUFFER_COUNT];
@@ -87,6 +100,7 @@ void example(streaming chanend c_ds_output[DECIMATOR_COUNT],
         unsigned count = 0;
         unsigned othercount = 0;
         int recognised = 0;
+        int matches_hm, matches_ml, matches_ro, matches_sc = 0;
         while(1){
             mic_array_frame_time_domain *  current =
                                 mic_array_get_next_time_domain_frame(c_ds_output, DECIMATOR_COUNT, buffer, audio, dc);
@@ -97,35 +111,67 @@ void example(streaming chanend c_ds_output[DECIMATOR_COUNT],
                 if (frame_add_sample_is_full(&f, data)) {      // This won’t take any time
                     int status = frame_feature_extract(&f, features);    // This takes some time, once every 160 samples (10 ms)
 
-#ifdef ALEXA
-                    int matchesm = frame_model_matches(&f, features, &alexa_ro, &v_sm);
-                    int matchesa = 0;
-#else
-                    int matchesm = frame_model_matches(&f, features, &suzy_mark, &v_sm);
-                    int matchesa = frame_model_matches(&f, features, &suzy_al_ro, &v_sa);
-#endif
+                    if (KEYWORD_SUZY) {
+                        if (SPEAKER_ML) {
+                            matches_ml = frame_model_matches(&f, features, &suzy_mark, &v_s_ml) ? MATCH_ML : NO_MATCH;
+                        }
+                        if (SPEAKER_RO) {
+                            matches_ro = frame_model_matches(&f, features, &suzy_al_ro, &v_s_ro) ? MATCH_RO : NO_MATCH;
+                        }
+                    } else if (KEYWORD_ALEXA) {
+                        if (SPEAKER_HM) {
+                            matches_hm = frame_model_matches(&f, features, &alexa_hm, &v_s_hm) ? MATCH_HM : NO_MATCH;
+                        }
+                        if (SPEAKER_ML) {
+                            matches_ml = frame_model_matches(&f, features, &alexa_ml, &v_s_ml) ? MATCH_ML : NO_MATCH;
+                        }
+                        if (SPEAKER_RO) {
+                            matches_ro = frame_model_matches(&f, features, &alexa_ro, &v_s_ro) ? MATCH_RO : NO_MATCH;
+                        }
+                        if (SPEAKER_SC) {
+                            matches_sc = frame_model_matches(&f, features, &alexa_sc, &v_s_sc) ? MATCH_SC : NO_MATCH;
+                        }
+                    }
 
-                    printint(status);
+                    debug_printf("%d", status);
                     count++;
                     if (count == 80) {
-                        printstr("\n");
+                        debug_printf("\n");
                         count = 0;
                     }
 
-                    if (status == FRAME_SPOKEN && (matchesm || matchesa)) {         // once every 160 samples (10 ms)
-                        for(int i = 0; i < 12; i++) {
-                            lb.set_led_brightness(i, 100);
-                        }
+                    if (status == FRAME_SPOKEN && (matches_hm ||
+                                                   matches_ml ||
+                                                   matches_ro ||
+                                                   matches_sc)) { // once every 160 samples (10 ms)
                         othercount = 0;
-                        recognised = 1;
-                        printstr("You called?\n");
+                        recognised = (1 << matches_hm) |
+                                     (1 << matches_ml) |
+                                     (1 << matches_ro) |
+                                     (1 << matches_sc);
+                        for(int i = 0; i < 12; i++) {
+                            if (i && ((recognised >> i) & 1)) {
+                                lb.set_led_brightness(i, 0);
+                            } else {
+                                lb.set_led_brightness(i, 100);
+                            }
+                        }
+                        debug_printf("You called? %x\n", recognised);
                     } else if (status != FRAME_QUIET) {
                         lb.set_led_brightness(12, 100);
-                        if (matchesm) {
-                            lb.set_led_brightness(0, 100);
-                        }
-                        if (matchesa) {
-                            lb.set_led_brightness(1, 100);
+                        if (!recognised) {
+                            if (matches_hm) {
+                                lb.set_led_brightness(MATCH_HM, 100);
+                            }
+                            if (matches_ml) {
+                                lb.set_led_brightness(MATCH_ML, 100);
+                            }
+                            if (matches_ro) {
+                                lb.set_led_brightness(MATCH_RO, 100);
+                            }
+                            if (matches_sc) {
+                                lb.set_led_brightness(MATCH_SC, 100);
+                            }
                         }
                     } else {
                         lb.set_led_brightness(12, 0);
@@ -138,8 +184,10 @@ void example(streaming chanend c_ds_output[DECIMATOR_COUNT],
                                 recognised = 0;
                             }
                         } else {
-                            lb.set_led_brightness(0, 0);
-                            lb.set_led_brightness(1, 0);
+                            lb.set_led_brightness(MATCH_HM, 0);
+                            lb.set_led_brightness(MATCH_ML, 0);
+                            lb.set_led_brightness(MATCH_RO, 0);
+                            lb.set_led_brightness(MATCH_SC, 0);
                         }
                     }
                 }
