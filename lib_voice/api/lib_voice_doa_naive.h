@@ -1,6 +1,18 @@
 #ifndef LIB_VOICE_DOA_NAIVE_H
 #define LIB_VOICE_DOA_NAIVE_H
 
+enum doaResId {
+    DOA_RESID = 0,
+    DOA_RESID_COUNT
+};
+
+enum doaCmd
+{
+    DOA_CMD_EN = 0,
+    DOA_CMD_DIR, 
+    DOA_CMD_COUNT
+};
+
 #define LIB_VOICE_DOA_NOTHING -1
 
 struct lib_voice_doa_correlation {
