@@ -17,8 +17,12 @@ Typical Resource Usage
 
 .. resusage::
 
-  * - Standard configuration
-    - 10 MIPS (tbc)
+  * - configuration: default
+    - globals:
+    - locals:
+    - fn:
+    - ports: 0
+    - pins: 0
 
 Software version and dependencies
 .................................
