@@ -190,10 +190,16 @@ int lib_voice_doa_naive_incorporate(struct lib_voice_doa &d,
                 min = d.ltsupport[i];
             }
         }
+
+#ifndef DOA_NAIVE_DONT_THRESH
         int usable = level > 0 && max > 100;
 #ifndef DONT_USE_MIN
         usable = usable && min > 3*max/4;
 #endif
+#else
+        int usable = 1;
+#endif
+
 #ifdef PRINT_CORR
         printf("Level %d min %d max %d usable %d\n", level, min, max, usable);
 #endif
