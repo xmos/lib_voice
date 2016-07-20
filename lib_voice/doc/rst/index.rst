@@ -1,5 +1,12 @@
 .. include:: ../../../README.rst
 
+API
+---
+
+.. doxygenfunction:: lib_voice_doa_naive_init
+
+.. doxygenfunction:: lib_voice_doa_naive_incorporate
+
 |newpage|
 
 Known Issues

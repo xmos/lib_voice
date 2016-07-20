@@ -1,6 +1,11 @@
 Voice library change log
 ========================
 
+0.0.4
+-----
+
+  * Documentation updated for release
+
 0.0.3
 -----
 
