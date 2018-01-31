@@ -1,3 +1,4 @@
+// Copyright (c) 2016, XMOS Ltd, All rights reserved
 #ifndef LIB_VOICE_DOA_NAIVE_H
 #define LIB_VOICE_DOA_NAIVE_H
 
