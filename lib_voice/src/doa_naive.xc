@@ -1,4 +1,4 @@
-// Copyright (c) 2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2016-2018, XMOS Ltd, All rights reserved
 #include "lib_voice_doa_naive.h"
 #include <xs1.h>
 #include <xclib.h>

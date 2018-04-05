@@ -1,4 +1,4 @@
-// Copyright (c) 2016, XMOS Ltd, All rights reserved
+// Copyright (c) 2016-2018, XMOS Ltd, All rights reserved
 #include <stdio.h>
 #include "lib_dsp_math.h"
 #include "lib_voice_doa_naive.h"
