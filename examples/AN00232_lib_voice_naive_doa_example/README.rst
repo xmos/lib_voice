@@ -11,8 +11,6 @@ Required tools and libraries
 
 .. appdeps::
    
-   lib_mic_array
-
 Required hardware
 .................
 
