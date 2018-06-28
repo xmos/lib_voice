@@ -9,7 +9,7 @@ TARGET = MIC-ARRAY-1V0
 APP_NAME = app_doa_example
 
 # The USED_MODULES variable lists other module used by the application.
-USED_MODULES = lib_mic_array lib_mic_array_board_support lib_voice lib_dsp
+USED_MODULES = lib_voice lib_mic_array lib_mic_array_board_support lib_i2c
 
 # The flags passed to xcc when building the application
 # You can also set the following to override flags for a particular language:

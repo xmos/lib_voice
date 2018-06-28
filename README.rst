@@ -9,7 +9,7 @@ A library of components for use with voice.
 Features
 ........
 
-* naive Direction Of Arrival.
+* Naive Direction Of Arrival.
 
 
 Typical Resource Usage
@@ -34,4 +34,4 @@ Related application notes
 
 The following application notes use this library:
 
-  * AN0xxxx - example use of Naive DOA
+  * AN00232 - How to use the DOA (Direction of Arrival) library
