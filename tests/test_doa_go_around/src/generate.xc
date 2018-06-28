@@ -1,6 +1,6 @@
 // Copyright (c) 2016-2018, XMOS Ltd, All rights reserved
 #include <stdio.h>
-#include "lib_dsp_math.h"
+#include "dsp_math.h"
 #include "lib_voice_doa_naive.h"
 
 static int vector;
@@ -56,13 +56,13 @@ int main() {
     for(int i = 0; i < 32000; i+= 16000*30/360) {
         int degrees;
         int rad = i * (PI2_Q8_24 / 16000);
-        int x = ((lib_dsp_math_sin(rad) >> 8) * 1000) >> 16;
-        int y = ((lib_dsp_math_cos(rad)>> 8) * 1000) >> 16;
+        int x = ((dsp_math_sin(rad) >> 8) * 1000) >> 16;
+        int y = ((dsp_math_cos(rad)>> 8) * 1000) >> 16;
         for(int m = 0; m < 6; m++) {
             int xd = x - xlocs[m];
             int yd = y - ylocs[m];
             int sum = xd * xd + yd * yd;
-            int md = (lib_dsp_math_squareroot(sum<<10) >> 17);
+            int md = (dsp_math_sqrt(sum<<10) >> 17);
             md = md * 16000 * SUB / 343000 - 40 * SUB;
             mds[m] = md;
         }

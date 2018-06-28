@@ -1,3 +1,5 @@
+.. |I2C| replace:: I\ :sup:`2`\ C
+
 .. include:: ../../README.rst
 
 |newpage|
@@ -6,31 +8,41 @@ Overview
 --------
 
 This demo application shows a simple use of the Direction-Of-Arrival
-library. It uses the microphone array library to get samples from 6
-libraries. Please see AN00220 for details on this part,
+library. It uses the microphone array library to get samples from six
+microphones and then displays the determined direction of arrival
+on the LEDs.
+
+Please see AN00220 for details on capturing data from the microphones.
 
 |newpage|
 
 The DOA call
 ------------
 
-
-The example in this note uses the microphone array library and shows a simple program
-that interfaces to to the PDM microphones, decimates the PDM and finally packs it into frames.
-
-To start using the microphone array library library, you need to add
+In order to use the DOA functionality you need to add
 ``lib_voice`` to your ``Makefile``::
 
-        USED_MODULES = ... lib_voice ...
+  USED_MODULES = ... lib_voice ...
 
-You can then access the microphone array library functions in your source
-code via the ``lib_voice_naive_doa.h`` header file:
+You also have to include the ``lib_voice_naive_doa.h`` header file in your
+source in order to access the DOA functions.
 
 .. literalinclude:: app_doa_example.xc
    :start-on: include "lib_voice
    :end-before: include "mic_array.h"
 
-                
+The application note also uses the Microphone Array support libraries to get
+data from the microphones and the |I2C| library in order to configure the
+PLL. Therefore the following need to be added to the ``Makefile`` ::
+
+  USED_MODULES = ... lib_mic_array lib_mic_array_board_support lib_i2c ...
+
+And the following includes have to be added to your application:
+
+.. literalinclude:: app_doa_example.xc
+   :start-on: include "mic_array.h"
+   :end-on: include "i2c.h"
+
 Demo Hardware Setup
 -------------------
 
@@ -76,7 +88,7 @@ to the DOA estimator, which will return one of two sorts of values:
 * The value **LIB_VOICE_DOA_NOTHING** indicates that there is not enough
   sound to calculate a direction
 
-* a value between 0 and 359 (inclusive), indicates the angle of the sound.
+* A value between 0 and 359 (inclusive), indicates the angle of the sound.
   An angle of zero indicates that the sound came from microphone 1, and
   positive angles move counter clockwise on the board, as shown in Figure 1.
 
@@ -85,16 +97,14 @@ to the DOA estimator, which will return one of two sorts of values:
 
             How to interpret the return value
 
-
 The calculation assumes that:
 
-* there are 6 microphones in a hexagonal arrangement with a radius of 48 mm
+* there are six microphones in a hexagonal arrangement with a radius of 48 mm
 
 * the sample rate is 16 kHz
 
-* That the sound originates roughly planar to the 6 microphones
+* that the sound originates roughly planar to the six microphones
   
-
 |appendix|
 |newpage|
 

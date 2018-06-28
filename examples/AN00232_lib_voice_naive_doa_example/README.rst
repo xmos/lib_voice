@@ -1,7 +1,7 @@
-How to use the DOA (direction of arrival) library
+How to use the DOA (Direction of Arrival) library
 =================================================
 
-.. version:: 0.1.0
+.. version:: 0.1.1
 
 Summary
 -------
@@ -10,7 +10,7 @@ Required tools and libraries
 ............................
 
 .. appdeps::
-   
+
 Required hardware
 .................
 
