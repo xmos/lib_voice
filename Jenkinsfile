@@ -130,8 +130,6 @@ pipeline {
 
                 dir("${REPO}") {
                   checkout scm
-                  sh "git submodule update --init --recursive --jobs 4"
-
                   // need ai_tools for the build
                   // need numpy to generate aec tests, will get in from ai_tools
                   createVenv(reqFile: "requirements.txt")
@@ -173,12 +171,13 @@ pipeline {
             }
             stage('Custom CMake build') {
               steps {
+                sh "git clone git@github.com:xmos/xmos_cmake_toolchain.git --branch v1.0.0"
                 // Do custom cmake, xcore build
-                dir("${REPO}/build") {
+                dir("${REPO}") {
                   withTools(params.TOOLS_VERSION) {
                     withVenv {
-                      sh 'cmake -S.. --toolchain=../xmos_cmake_toolchain/xs3a.cmake -DUSE_CUSTOM_CMAKE=ON'
-                      sh 'make -j$(nproc)'
+                      sh 'cmake -B build_custom_cmake --toolchain=../xmos_cmake_toolchain/xs3a.cmake -DUSE_CUSTOM_CMAKE=ON'
+                      sh 'make -C build_custom_cmake -j$(nproc)'
                     }
                   }
                 }
@@ -213,7 +212,6 @@ pipeline {
 
             dir("${REPO}") {
               checkout scm
-              sh "git submodule update --init --recursive --jobs 4"
 
               createVenv(reqFile: "requirements_test.txt")
               withVenv {
