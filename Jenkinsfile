@@ -136,18 +136,19 @@ pipeline {
                 }
               }
             }
-            stage('xcommon-cmake xcore build') {
+            stage('Build tests, xcommon-cmake xcore build') {
               steps {
                 dir("${REPO}") {
-                  checkout scm
                     withTools(params.TOOLS_VERSION) {
                       withVenv {
-                        script {
-                          if (env.FULL_TEST == "1") {
-                            xcoreBuild(buildDir: "build_xcommon_cmake", archiveBins: false)
-                          }
-                          else {
-                            xcoreBuild(buildDir: "build_xcommon_cmake", archiveBins: false, cmakeOpts: "-DTEST_SPEEDUP_FACTOR=4")
+                        dir("test") {
+                          script {
+                            if (env.FULL_TEST == "1") {
+                              xcoreBuild(buildDir: "build_xcommon_cmake", archiveBins: false)
+                            }
+                            else {
+                              xcoreBuild(buildDir: "build_xcommon_cmake", archiveBins: false, cmakeOpts: "-DTEST_SPEEDUP_FACTOR=4")
+                            }
                           }
                         }
 
@@ -157,12 +158,14 @@ pipeline {
                 }
               }
             }
-            stage('xcommon-cmake native build') {
+            stage('Build tests, xcommon-cmake native build') {
               steps {
                 dir("${REPO}") {
                     withTools(params.TOOLS_VERSION) {
                       withVenv {
-                        xcoreBuild(buildDir: "build_xcommon_cmake_native", archiveBins: false, cmakeOpts: "-DBUILD_NATIVE=ON")
+                        dir("test") {
+                          xcoreBuild(buildDir: "build_xcommon_cmake_native", archiveBins: false, cmakeOpts: "-DBUILD_NATIVE=ON")
+                        }
                         stash name: 'xcommon_cmake_build_native', includes: '**/bin/**/', excludes: '**/bin/**/*.xe'
                       }
                     }
@@ -172,12 +175,12 @@ pipeline {
             stage('Custom CMake build') {
               steps {
                 sh "git clone git@github.com:xmos/xmos_cmake_toolchain.git --branch v1.0.0"
-                // Do custom cmake, xcore build
-                dir("${REPO}") {
+                // Do custom cmake, xcore build, from the test/custom_cmake_build directory
+                dir("${REPO}/test/custom_cmake_build") {
                   withTools(params.TOOLS_VERSION) {
                     withVenv {
-                      sh 'cmake -B build_custom_cmake --toolchain=../xmos_cmake_toolchain/xs3a.cmake -DUSE_CUSTOM_CMAKE=ON'
-                      sh 'make -C build_custom_cmake -j$(nproc)'
+                      sh 'cmake -B build --toolchain=../../../xmos_cmake_toolchain/xs3a.cmake'
+                      sh 'make -C build -j$(nproc)'
                     }
                   }
                 }
@@ -226,13 +229,15 @@ pipeline {
             dir("${REPO}") {
               withTools(params.TOOLS_VERSION) {
                 withVenv {
-                  sh "cmake -B build_xcommon_cmake" // to fetch lib_xcore_math
+                  dir("test") {
+                    sh "cmake -B build_xcommon_cmake" // to fetch lib_xcore_math
+                  }
 
                   // Build x86 versions locally as we had problems with moving bins and libs over from previous build due to brew
-                  dir("build") {
+                  dir("test/custom_cmake_build") {
                     sh "cmake --version"
-                    sh 'cmake -S.. -DUSE_CUSTOM_CMAKE=ON'
-                    sh 'make -j$(nproc)'
+                    sh 'cmake -B build'
+                    sh 'make -C build -j$(nproc)'
 
                     // We need to put this here because it is not fetched until we build
                     sh "pip install xscope_fileio"

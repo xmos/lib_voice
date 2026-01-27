@@ -6,12 +6,15 @@ import sys
 from pathlib import Path
 import xmos_ai_tools.runtime as rt
 from cffi import FFI
+import subprocess
 
 from extract_state import extract_pre_defs_vnr
 
-# One more ../ than necessary - builds in the 'build' folder
-MODULE_ROOT = Path("../../../../lib_voice")
-XCORE_MATH = Path("../../../../../lib_xcore_math")
+
+REPO_ROOT = Path(__file__).parents[3]
+MODULE_ROOT = REPO_ROOT / "lib_voice"
+XCORE_MATH = REPO_ROOT.parent / "lib_xcore_math"
+LIBS_BUILD_DIR = Path(__file__).parent/ "build_libs_x86"
 
 # TFLite Micro configuration
 TFLITE_MICRO_ROOT = Path(rt.__file__).parent
@@ -21,7 +24,6 @@ TFLITE_MICRO_LIB = "host_xtflitemicro"  # use the host platform
 
 # Flag, Include, Libraries
 FLAGS = [
-    '-std=c++11',
     '-fPIC',
     '-DTF_LITE_STATIC_MEMORY',           # Define TF_LITE_STATIC_MEMORY
     '-DTF_LITE_STRIP_ERROR_STRINGS',     # Define TF_LITE_STRIP_ERROR_STRINGS
@@ -36,8 +38,8 @@ INCLUDE_DIRS = [
 ]
 
 LIBRARY_DIRS = [
-    '../../../../build/lib_voice/',
-    '../../../../build/lib_xcore_math',
+    str(LIBS_BUILD_DIR / "lib_voice"),
+    str(LIBS_BUILD_DIR / "lib_xcore_math"),
     str(TFLITE_MICRO_LIB_DIR)
 ]
 
@@ -86,6 +88,9 @@ ffibuilder.set_source("vnr_test_py",  # name of the output C extension
 
 
 if __name__ == "__main__":
+    subprocess.run(["cmake", "-B", str(LIBS_BUILD_DIR), "-G", "Unix Makefiles"], check=True)
+    subprocess.run(["xmake", "-C", str(LIBS_BUILD_DIR), "-j"], check=True)
+
     ffibuilder.compile(tmpdir='build', target='vnr_test_py.*', verbose=True)
     #Darwin hack https://stackoverflow.com/questions/2488016/how-to-make-python-load-dylib-on-osx
     if sys.platform == "darwin":

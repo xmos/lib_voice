@@ -3,44 +3,46 @@
 
 import shutil
 import sys
-import os
 import xmos_ai_tools.runtime as rt
 from cffi import FFI
+import subprocess
+from pathlib import Path
 
 from extract_state import extract_pre_defs
 
-# One more ../ than necessary - builds in the 'build' folder
-MODULE_ROOT = "../../../lib_voice"
-XCORE_MATH = "../../../../lib_xcore_math/"
+REPO_ROOT = Path(__file__).parents[2]
+MODULE_ROOT = REPO_ROOT / "lib_voice"
+XCORE_MATH = REPO_ROOT.parent / "lib_xcore_math"
+LIBS_BUILD_DIR = Path(__file__).parent/ "build_libs_x86"
+
 
 # TFLite Micro configuration
-TFLITE_MICRO_ROOT = os.path.dirname(rt.__file__)
-TFLITE_MICRO_LIB_DIR = f"{TFLITE_MICRO_ROOT}/lib"
-TFLITE_MICRO_INCLUDE = f"{TFLITE_MICRO_ROOT}/include"
-TFLITE_MICRO_LIB = f"host_xtflitemicro" # use the host platform
+TFLITE_MICRO_ROOT = Path(rt.__file__).parent
+TFLITE_MICRO_LIB_DIR = TFLITE_MICRO_ROOT / "lib"
+TFLITE_MICRO_INCLUDE = TFLITE_MICRO_ROOT / "include"
+TFLITE_MICRO_LIB = "host_xtflitemicro"  # use the host platform
 
 # Flag, Include, Libraries
 FLAGS = [
-    '-std=c++11',
     '-fPIC',
     '-DTF_LITE_STATIC_MEMORY',           # Define TF_LITE_STATIC_MEMORY
     '-DTF_LITE_STRIP_ERROR_STRINGS',     # Define TF_LITE_STRIP_ERROR_STRINGS
 ]
 
 INCLUDE_DIRS=[
-    f"{MODULE_ROOT}/src/ic/",
-    f"{MODULE_ROOT}/api/ic/",
-    f"{MODULE_ROOT}/api/vnr/",
-    f"{MODULE_ROOT}/src/vnr",
-    f"{MODULE_ROOT}/src/vnr/model/",
-    f"{XCORE_MATH}/lib_xcore_math/api",
-    TFLITE_MICRO_INCLUDE
+    str(MODULE_ROOT / "src" / "ic"),
+    str(MODULE_ROOT / "api" / "ic"),
+    str(MODULE_ROOT / "api" / "vnr"),
+    str(MODULE_ROOT / "src" / "vnr"),
+    str(MODULE_ROOT / "src" / "vnr" / "model"),
+    str(XCORE_MATH / "lib_xcore_math" / "api"),
+    str(TFLITE_MICRO_INCLUDE)
 ]
 
 LIBRARY_DIRS=[
-    '../../../build/lib_voice',
-    '../../../build/lib_xcore_math',
-    TFLITE_MICRO_LIB_DIR
+    str(LIBS_BUILD_DIR / "lib_voice"),
+    str(LIBS_BUILD_DIR / "lib_xcore_math"),
+    str(TFLITE_MICRO_LIB_DIR)
 ]
 
 LIBRARIES = [
@@ -102,6 +104,9 @@ ffibuilder.set_source("ic_vnr_test_py",  # name of the output C extension
     include_dirs=INCLUDE_DIRS)
 
 if __name__ == "__main__":
+    subprocess.run(["cmake", "-B", str(LIBS_BUILD_DIR), "-G", "Unix Makefiles"], check=True)
+    subprocess.run(["xmake", "-C", str(LIBS_BUILD_DIR), "-j"], check=True)
+
     ffibuilder.compile(tmpdir='build', target='ic_vnr_test_py.*', verbose=True)
     #Darwin hack https://stackoverflow.com/questions/2488016/how-to-make-python-load-dylib-on-osx
     if sys.platform == "darwin":
