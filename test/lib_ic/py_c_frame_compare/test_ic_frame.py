@@ -13,7 +13,7 @@ from ic_test_py import ffi
 import ic_test_py.lib as ic_test_lib
 
 sys.path.append(str(Path(__file__).parents[2] / "shared" / "python")) # For py_vs_c_utils
-import py_vs_c_utils as pvc 
+import py_vs_c_utils as pvc
 
 from py_voice.modules import ic
 from py_voice.config import config
@@ -45,7 +45,7 @@ class ic_comparison:
         frame_int = pvc.float_to_int32(frame)
         mt_data = {}
         output_py, out_metadata = self.ic.process_frame(frame, mt_data)
- 
+
         #Grab a pointer to the data storage of the numpy arrays
         y_data = ffi.cast("int32_t *", ffi.from_buffer(frame_int[0].data))
         x_data = ffi.cast("int32_t *", ffi.from_buffer(frame_int[1].data))

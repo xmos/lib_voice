@@ -150,9 +150,8 @@ pipeline {
                               xcoreBuild(buildDir: "build_xcommon_cmake", archiveBins: false, cmakeOpts: "-DTEST_SPEEDUP_FACTOR=4")
                             }
                           }
+                          stash name: 'xcommon_cmake_build_xcore', includes: '**/bin/**/*.xe'
                         }
-
-                        stash name: 'xcommon_cmake_build_xcore', includes: '**/bin/**/*.xe'
                       }
                     }
                 }
@@ -165,8 +164,8 @@ pipeline {
                       withVenv {
                         dir("test") {
                           xcoreBuild(buildDir: "build_xcommon_cmake_native", archiveBins: false, cmakeOpts: "-DBUILD_NATIVE=ON")
+                          stash name: 'xcommon_cmake_build_native', includes: '**/bin/**/', excludes: '**/bin/**/*.xe'
                         }
-                        stash name: 'xcommon_cmake_build_native', includes: '**/bin/**/', excludes: '**/bin/**/*.xe'
                       }
                     }
                 }
@@ -174,7 +173,7 @@ pipeline {
             }
             stage('Custom CMake build') {
               steps {
-                sh "git clone git@github.com:xmos/xmos_cmake_toolchain.git --branch v1.0.0"
+                sh "git clone git@github.com:xmos/xmos_cmake_toolchain.git --depth 1 --branch v1.0.0"
                 // Do custom cmake, xcore build, from the test/custom_cmake_build directory
                 dir("${REPO}/test/custom_cmake_build") {
                   withTools(params.TOOLS_VERSION) {
@@ -207,50 +206,40 @@ pipeline {
           steps {
             runningOn(env.NODE_NAME)
 
-            sh "git clone --depth 1 --branch v3.0.0 git@github0.xmos.com:xmos-int/xtagctl.git"
-            sh "git clone --depth 1 --branch v4.6.0 git@github.com:xmos/audio_test_tools.git"
-            sh "git clone --depth 1 --branch v1.1.0 git@github.com:xmos/py_voice.git"
             sh "git clone --depth 1 --branch main git@github.com:xmos/amazon_wwe.git"
             sh "git clone --depth 1 --branch master git@github.com:xmos/sensory_sdk.git"
 
             dir("${REPO}") {
               checkout scm
-
-              createVenv(reqFile: "requirements_test.txt")
-              withVenv {
-                // Note xscope_fileio is fetched by build so install in next stage
-                sh "pip install -e ${env.WORKSPACE}/xtagctl"
+              dir("test") {
+                createVenv(reqFile: "requirements_test.txt")
               }
             }
           }
         }
         stage('Make/get bins and libs'){
           steps {
-            dir("${REPO}") {
+            dir("${REPO}/test") {
               withTools(params.TOOLS_VERSION) {
                 withVenv {
-                  dir("test") {
-                    sh "cmake -B build_xcommon_cmake" // to fetch lib_xcore_math
-                  }
+
+                  sh "cmake -B build_xcommon_cmake" // to fetch lib_xcore_math
 
                   // Build x86 versions locally as we had problems with moving bins and libs over from previous build due to brew
-                  dir("test/custom_cmake_build") {
+                  dir("custom_cmake_build") {
                     sh "cmake --version"
                     sh 'cmake -B build'
                     sh 'make -C build -j$(nproc)'
-
-                    // We need to put this here because it is not fetched until we build
-                    sh "pip install xscope_fileio"
                   }
                   // We do this again on the NUCs for verification later, but this just checks we have no build error
-                  dir("test/lib_ic/py_c_frame_compare") {
+                  dir("lib_ic/py_c_frame_compare") {
                     sh "python build_ic_frame_proc.py"
                   }
                   // We do this again on the NUCs for verification later, but this just checks we have no build error
-                  dir("test/lib_vnr/test_vnr_cffi") {
+                  dir("lib_vnr/test_vnr_cffi") {
                     sh "python build_vnr_cffi.py"
                   }
-                  dir("test/stage_b") {
+                  dir("stage_b") {
                     sh "python build_c_code.py"
                   }
                   unstash 'xcommon_cmake_build_xcore'
@@ -262,7 +251,7 @@ pipeline {
         }
         stage('Reset XTAGs'){
           steps{
-            dir("${REPO}") {
+            dir("${REPO}/test") {
               sh 'rm -f ~/.xtag/acquired' // Hacky but ensure it always works even when previous failed run left lock file present
               withTools(params.TOOLS_VERSION) {
                 withVenv{

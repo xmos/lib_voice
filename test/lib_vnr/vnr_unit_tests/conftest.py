@@ -6,9 +6,12 @@ import numpy as np
 import py_voice.modules.vnr as vnr
 import test_utils
 from run_dut import run_dut
+import py_voice
 
 tflite_model = Path(__file__).parents[3] / "lib_voice" / "src" / "vnr" / "model" / "trained_model.tflite"
-vnr_conf = Path(__file__).parents[4] / "py_voice" / "py_voice" / "config" / "components" / "vnr_only.json"
+PY_VOICE_ROOT = Path(py_voice.__file__).resolve().parent
+vnr_conf = PY_VOICE_ROOT / "config" / "components" / "vnr_only.json"
+
 bin_dir_path = Path(__file__).parent / "bin"
 
 @pytest.fixture(scope="session")

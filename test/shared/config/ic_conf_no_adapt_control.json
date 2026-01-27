@@ -6,7 +6,7 @@
         "proc_frame_length": 512,
         "input_channel_count": 2,
         "output_channel_count": 1,
-        "modules": ["ic"] 
+        "modules": ["ic"]
     },
 
     "ic":
@@ -23,7 +23,7 @@
         "sigma_xx_shift": 11,
         "gamma_log2" : 1.0,
         "leakage" : 0.995,
-        "vnr_model" : "../../../../py_voice/py_voice/data/vnr/model_output/trained_model.h5",
+        "vnr_model" : "$PY_VOICE/data/vnr/model_output/trained_model.h5",
         "adaption_config": "ADAPTION_FORCE_ON"
     }
 }

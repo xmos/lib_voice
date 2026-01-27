@@ -13,10 +13,8 @@ from ic_vnr_test_py import ffi
 import ic_vnr_test_py.lib as ic_vnr_test_lib
 
 package_dir = os.path.dirname(os.path.abspath(__file__))
-pvc_path = os.path.join(package_dir, '../shared/python')
 hydra_audio_base_dir = os.path.expanduser("~/hydra_audio/")
 
-sys.path.append(pvc_path)
 import py_vs_c_utils as pvc
 
 from py_voice.modules import ic

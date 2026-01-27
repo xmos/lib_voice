@@ -6,18 +6,18 @@
         "proc_frame_length": 512,
         "input_channel_count": 2,
         "output_channel_count": 1,
-        "modules": ["ic"] 
+        "modules": ["ic"]
     },
 
     "ic":
     {
         "phases": 10,
-        "mu_scalar" : 1.0, 
+        "mu_scalar" : 1.0,
         "delta" : 0.015624999996362021,
         "y_channel_delay": 600,
         "gamma_log2" : 1.0,
         "leakage" : 1.0,
-        "vnr_model" : "../../../../py_voice/py_voice/data/vnr/model_output/trained_model.h5",
+        "vnr_model" : "$PY_VOICE/data/vnr/model_output/trained_model.h5",
         "adaption_config": "ADAPTION_FORCE_ON"
     }
 }

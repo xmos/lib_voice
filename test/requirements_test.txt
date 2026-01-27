@@ -24,7 +24,7 @@ pytest-xdist~=3.8.0
 matplotlib~=3.10.8
 soundfile~=0.13.1
 xmos-ai-tools==1.4.2
-
+xscope-fileio==1.3.1
 # Development dependencies
 #
 # Each link listed below specifies the path to a setup.py file which are
@@ -37,6 +37,7 @@ xmos-ai-tools==1.4.2
 # If this repository uses the setup functionality (e.g., script entry points)
 # of its own setup.py file, then this list must include an entry for that
 # setup.py file, e.g., '-e .' or '-e ./python' (without the quotes).
--e ./test/shared/python
--e ./../audio_test_tools/python
--e ./../py_voice
+-e ./shared/python
+git+ssh://git@github.com/xmos/audio_test_tools@v4.6.0#egg=audio_test_tools&subdirectory=python
+git+ssh://git@github.com/xmos/py_voice@v1.1.0#egg=py_voice
+git+ssh://git@github0.xmos.com/xmos-int/xtagctl@v3.0.0#egg=xtagctl
