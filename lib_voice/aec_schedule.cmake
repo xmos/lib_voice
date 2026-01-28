@@ -9,7 +9,7 @@ message(STATUS "AEC_SCHEDULE_CONFIG = ${AEC_SCHEDULE_CONFIG}")
 
 # Resolve script path relative to this file, to avoid depending on CMAKE_SOURCE_DIR
 get_filename_component(GEN_SCHEDULE_SCRIPT
-  "${XMOS_SANDBOX_DIR}/lib_voice/test/shared/python/generate_task_distribution_scheme.py"
+  "${XMOS_SANDBOX_DIR}/lib_voice/tests/shared/python/generate_task_distribution_scheme.py"
   REALPATH
 )
 if (NOT EXISTS "${GEN_SCHEDULE_SCRIPT}")

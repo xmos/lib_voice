@@ -5,7 +5,7 @@ function(generate_schedule TARGET AEC_SCHEDULE_CONFIG)
         message(FATAL_ERROR "Python not found for running . ")
     endif()
 
-    set(GEN_SCHEDULE_SCRIPT "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../test/shared/python/generate_task_distribution_scheme.py")
+    set(GEN_SCHEDULE_SCRIPT "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../tests/shared/python/generate_task_distribution_scheme.py")
     set( AUTOGEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}_src.autogen )
     set( AUTOGEN_SOURCES ${AUTOGEN_DIR}/aec_task_distribution.c )
     set( AUTOGEN_INCLUDES ${AUTOGEN_DIR}/aec_conf.h)

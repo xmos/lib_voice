@@ -141,7 +141,7 @@ pipeline {
                 dir("${REPO}") {
                     withTools(params.TOOLS_VERSION) {
                       withVenv {
-                        dir("test") {
+                        dir("tests") {
                           script {
                             if (env.FULL_TEST == "1") {
                               xcoreBuild(buildDir: "build_xcommon_cmake", archiveBins: false)
@@ -162,7 +162,7 @@ pipeline {
                 dir("${REPO}") {
                     withTools(params.TOOLS_VERSION) {
                       withVenv {
-                        dir("test") {
+                        dir("tests") {
                           xcoreBuild(buildDir: "build_xcommon_cmake_native", archiveBins: false, cmakeOpts: "-DBUILD_NATIVE=ON")
                           stash name: 'xcommon_cmake_build_native', includes: '**/bin/**/', excludes: '**/bin/**/*.xe'
                         }
@@ -174,8 +174,8 @@ pipeline {
             stage('Custom CMake build') {
               steps {
                 sh "git clone git@github.com:xmos/xmos_cmake_toolchain.git --depth 1 --branch v1.0.0"
-                // Do custom cmake, xcore build, from the test/custom_cmake_build directory
-                dir("${REPO}/test/custom_cmake_build") {
+                // Do custom cmake, xcore build, from the tests/custom_cmake_build directory
+                dir("${REPO}/tests/custom_cmake_build") {
                   withTools(params.TOOLS_VERSION) {
                     withVenv {
                       sh 'cmake -B build --toolchain=../../../xmos_cmake_toolchain/xs3a.cmake'
@@ -211,7 +211,7 @@ pipeline {
 
             dir("${REPO}") {
               checkout scm
-              dir("test") {
+              dir("tests") {
                 createVenv(reqFile: "requirements_test.txt")
               }
             }
@@ -219,7 +219,7 @@ pipeline {
         }
         stage('Make/get bins and libs'){
           steps {
-            dir("${REPO}/test") {
+            dir("${REPO}/tests") {
               withTools(params.TOOLS_VERSION) {
                 withVenv {
 
@@ -251,7 +251,7 @@ pipeline {
         }
         stage('Reset XTAGs'){
           steps{
-            dir("${REPO}/test") {
+            dir("${REPO}/tests") {
               sh 'rm -f ~/.xtag/acquired' // Hacky but ensure it always works even when previous failed run left lock file present
               withTools(params.TOOLS_VERSION) {
                 withVenv{
@@ -265,7 +265,7 @@ pipeline {
         stage('VNR tests') {
           steps {
             catchError(stageResult: 'FAILURE', catchInterruptions: false){
-              dir("${REPO}/test/lib_vnr") {
+              dir("${REPO}/tests/lib_vnr") {
                 withTools(params.TOOLS_VERSION) {
                   withVenv {
                     withEnv(["hydra_audio_PATH=/projects/hydra_audio"]) {
@@ -293,7 +293,7 @@ pipeline {
         stage('NS tests') {
           steps {
             catchError(stageResult: 'FAILURE', catchInterruptions: false){
-              dir("${REPO}/test/lib_ns") {
+              dir("${REPO}/tests/lib_ns") {
                 withTools(params.TOOLS_VERSION) {
                   withVenv {
                     withEnv(["hydra_audio_PATH=/projects/hydra_audio"]) {
@@ -320,7 +320,7 @@ pipeline {
         stage('IC tests') {
           steps {
             catchError(stageResult: 'FAILURE', catchInterruptions: false){
-              dir("${REPO}/test/lib_ic") {
+              dir("${REPO}/tests/lib_ic") {
                 withTools(params.TOOLS_VERSION) {
                   withVenv {
                     withEnv(["hydra_audio_PATH=/projects/hydra_audio"]) {
@@ -378,7 +378,7 @@ pipeline {
         stage('Stage B tests') {
           steps {
             catchError(stageResult: 'FAILURE', catchInterruptions: false){
-              dir("${REPO}/test/stage_b") {
+              dir("${REPO}/tests/stage_b") {
                 withTools(params.TOOLS_VERSION) {
                   withVenv {
                     withEnv(["hydra_audio_PATH=/projects/hydra_audio"]) {
@@ -395,7 +395,7 @@ pipeline {
         stage('ADEC tests') {
           steps {
             catchError(stageResult: 'FAILURE', catchInterruptions: false){
-              dir("${REPO}/test/lib_adec") {
+              dir("${REPO}/tests/lib_adec") {
                 withTools(params.TOOLS_VERSION) {
                   withVenv {
                     withEnv(["hydra_audio_PATH=/projects/hydra_audio"]) {
@@ -435,7 +435,7 @@ pipeline {
         stage('AEC tests') {
           steps {
             catchError(stageResult: 'FAILURE', catchInterruptions: false){
-              dir("${REPO}/test/lib_aec") {
+              dir("${REPO}/tests/lib_aec") {
                 withTools(params.TOOLS_VERSION) {
                   withVenv {
                     withEnv(["hydra_audio_PATH=/projects/hydra_audio"]) {
@@ -478,7 +478,7 @@ pipeline {
         stage('AGC tests') {
           steps {
             catchError(stageResult: 'FAILURE', catchInterruptions: false){
-              dir("${REPO}/test/lib_agc/test_process_frame") {
+              dir("${REPO}/tests/lib_agc/test_process_frame") {
                 withTools(params.TOOLS_VERSION) {
                   withVenv {
                     sh "pytest -n 2 --junitxml=pytest_result.xml"
@@ -492,7 +492,7 @@ pipeline {
         stage('Pipeline tests') {
           steps {
             catchError(stageResult: 'FAILURE', catchInterruptions: false){
-              dir("${REPO}/test/pipeline") {
+              dir("${REPO}/tests/pipeline") {
                 withEnv(["hydra_audio_PATH=/projects/hydra_audio"]) {
                   withEnv(["PIPELINE_FULL_RUN=${PIPELINE_FULL_RUN}", "SENSORY_PATH=${env.WORKSPACE}/sensory_sdk/", "AMAZON_WWE_PATH=${env.WORKSPACE}/amazon_wwe/"]) {
                     withTools(params.TOOLS_VERSION) {
@@ -511,12 +511,12 @@ pipeline {
             }
           }
         }
-        stage('Benchmark Pipeline test results') {
+        stage('Benchmark Pipeline tests results') {
           when {
             expression { env.PIPELINE_FULL_RUN == "1" }
           }
           steps {
-            dir("${REPO}/test/pipeline") {
+            dir("${REPO}/tests/pipeline") {
               withTools(params.TOOLS_VERSION) {
                 withVenv {
                   copyArtifacts filter: '**/results_*.csv', fingerprintArtifacts: true, projectName: '../lib_audio_pipelines/master', selector: lastSuccessful()
@@ -531,23 +531,23 @@ pipeline {
       post {
         always {
           // AEC aretfacts
-          archiveArtifacts artifacts: "${REPO}/test/lib_adec/test_adec_profile/**/adec_prof*.log", fingerprint: true
+          archiveArtifacts artifacts: "${REPO}/tests/lib_adec/test_adec_profile/**/adec_prof*.log", fingerprint: true
           // IC artefacts
-          archiveArtifacts artifacts: "${REPO}/test/lib_ic/test_ic_profile/ic_prof.log", fingerprint: true
-          archiveArtifacts artifacts: "${REPO}/test/lib_ic/test_ic_spec/ic_spec_summary.txt", fingerprint: true
+          archiveArtifacts artifacts: "${REPO}/tests/lib_ic/test_ic_profile/ic_prof.log", fingerprint: true
+          archiveArtifacts artifacts: "${REPO}/tests/lib_ic/test_ic_spec/ic_spec_summary.txt", fingerprint: true
           // NS artefacts
-          archiveArtifacts artifacts: "${REPO}/test/lib_ns/test_ns_profile/ns_prof.log", fingerprint: true
+          archiveArtifacts artifacts: "${REPO}/tests/lib_ns/test_ns_profile/ns_prof.log", fingerprint: true
           // VNR artifacts
-          archiveArtifacts artifacts: "${REPO}/test/lib_vnr/test_vnr_profile/*.png", fingerprint: true
-          archiveArtifacts artifacts: "${REPO}/test/lib_vnr/test_vnr_profile/vnr_prof.log", fingerprint: true
+          archiveArtifacts artifacts: "${REPO}/tests/lib_vnr/test_vnr_profile/*.png", fingerprint: true
+          archiveArtifacts artifacts: "${REPO}/tests/lib_vnr/test_vnr_profile/vnr_prof.log", fingerprint: true
           // Pipelines tests
-          archiveArtifacts artifacts: "${REPO}/test/pipeline/**/results_*.csv", fingerprint: true
-          archiveArtifacts artifacts: "${REPO}/test/pipeline/**/results_*.png", fingerprint: true, allowEmptyArchive: true
-          archiveArtifacts artifacts: "${REPO}/test/pipeline/keyword_input_*/*.npy", fingerprint: true, allowEmptyArchive: true
+          archiveArtifacts artifacts: "${REPO}/tests/pipeline/**/results_*.csv", fingerprint: true
+          archiveArtifacts artifacts: "${REPO}/tests/pipeline/**/results_*.png", fingerprint: true, allowEmptyArchive: true
+          archiveArtifacts artifacts: "${REPO}/tests/pipeline/keyword_input_*/*.npy", fingerprint: true, allowEmptyArchive: true
         }
         failure {
           // archive wavs on failure only
-          archiveArtifacts artifacts: "${REPO}/test/pipeline/keyword_input_*/*.wav", fingerprint: true
+          archiveArtifacts artifacts: "${REPO}/tests/pipeline/keyword_input_*/*.wav", fingerprint: true
         }
         cleanup {
           xcoreCleanSandbox()
