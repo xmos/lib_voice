@@ -1,3 +1,5 @@
+.. _stage1_module:
+
 Pipeline Stage 1
 ================
 

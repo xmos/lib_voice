@@ -1,8 +1,8 @@
 Interference Canceller
 ======================
 
-The Interference Canceller (IC) suppresses static noise from point sources such as cooker hoods, washing machines,
-or radios for which there is no reference audio signal available. When the Voice to Noise Ratio estimator (VNR) input
+The Interference Canceller suppresses static noise from point sources such as cooker hoods, washing machines,
+or radios for which there is no reference audio signal available. When the :ref:`vnr_module` 
 indicates the absence of voice, the IC adapts to remove noise from point sources in the environment. When the VNR
 signal indicates the presence of voice, the IC suspends adaptation which allows the voice source to be passed but
 maintains suppression of the interfering noise sources which have been previously adapted to.
@@ -40,8 +40,8 @@ The filter has multiple phases each of 15ms. The term phases refers to the tail 
 longer tail length will be able to model a more reverberant room response leading to better interference cancellation
 but, as with all normalised LMS based architectures, will be slower to converge in the case of a transfer function change.
 
-Before starting the IC processing the user must call ic_init() to initialise the IC. If the configuration parameters are
-to be set to non-defaults please modify these after ic_init() or in the :ref:`ic_defines` file.
-Once the IC is initialised, the library functions can be called in a order to perform interference cancellation on
-a frame by frame basis.
+Before starting the IC processing the user must call :c:func:`ic_init()` to initialise the IC. If the configuration parameters are
+to be set to non-defaults please modify these after :c:func:`ic_init()` or in the :ref:`ic_defines` file.
+Once the IC is initialised, the :c:func:`ic_process_frame()` can be called in an order to perform interference cancellation
+and to get the VNR estimate (see :ref:`pipeline_example`).
 

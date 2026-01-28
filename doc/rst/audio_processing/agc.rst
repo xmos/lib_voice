@@ -1,18 +1,20 @@
+.. _agc_module:
+
 Automatic Gain Control
 ======================
 
-The ``lib_agc`` library provides an API to implement Automatic Gain Control within
+The AGC provides an API to implement Automatic Gain Control within
 an application. The AGC algorithm can dynamically adapt the audio gain,
 or apply a fixed gain such that voice content maintains a desired output
-level. The AGC uses an internal Voice Activity Detector to normalise
+level. The AGC uses a :ref:`vnr_module` to normalise
 voice content and avoid amplifying noise sources and applies a soft
 limiter to avoid clipping on the output. The design is based on standard
-modern AGC techniques as detailed in '*Acoustic Echo and Noise
-Control',* by Hansler and Schmidt.
+modern AGC techniques as detailed in 
+`Acoustic Echo and Noise Control <https://ieeexplore.ieee.org/book/5224645>`_ by Hansler and Schmidt.
 
 The gain control can adapt to maintain the amplitude of the peak of the frame
 within an upper and lower bound configured for the AGC instance. When used in an
-application with a Voice to Noise Ratio estimator (VNR), the AGC will adapt only when
+application with the VNR, the AGC will adapt only when
 voice activity is detected, so that speech in the input signal is amplified
 above other sounds.
 
@@ -21,7 +23,7 @@ attenuating any residual echo of the reference far-end audio. It is
 designed to be used on the communications channel. In cases where there
 is both far-end echo and near-end audio then the attenuation is reduced,
 allowing listeners to interrupt each other. The Loss Control relies on
-the Automatic Echo Canceller (AEC) to classify and attenuate residual far-end
+the :ref:`aec_module` to classify and attenuate residual far-end
 echo.
 
 An optional soft clipping stage is applied at the end of the AGC to
@@ -38,13 +40,14 @@ of data, which is 240 samples at 16kHz input sampling frequency. Input data is
 expected to be in a fixed-point 32-bit 1.31 format.
 
 Before processing any frames, the application must configure and initialise the
-AGC instance by calling ``agc_init()``. Several parameter sets are provided in
+AGC instance by calling :c:func:`agc_init()`. Several parameter sets are provided in
 `agc_profiles.h` which can be used to configure the AGC for different
 applications. Details on the profiles and key parameters are provided in :ref:`agc_profiles`.
 
-After initialisation, ``agc_process_frame()`` should be called for each frame.
+After initialisation, :c:func:`agc_process_frame()` should be called for each frame.
 This will update the AGC instance's internal state and produce
 the output frame by applying the AGC algorithm to the input frame.
+Refer to the :ref:`pipeline_example` to see how to use APIs above.
 
 The gain values in this module for AGC gain and Loss Control gain are
 multiplicative factors that are applied to scale the input frame. Therefore, a

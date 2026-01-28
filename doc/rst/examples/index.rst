@@ -10,6 +10,8 @@ This section goes through the various example applications that are provided alo
 The examples are meant to demonstrate the basic usage of the APIs.
 All examples are located in the ``examples`` directory.
 
+.. _aec_example:
+
 AEC example
 ===========
 
@@ -42,6 +44,8 @@ In this example, ``frame_y`` and ``frame_x`` memory is reused for AEC output:
 
 Upon execution, the example will print "frame done" when the AEC has processed a frame.
 
+.. _vnr_example:
+
 VNR example
 ===========
 
@@ -69,6 +73,8 @@ It outputs a number between 0 and 1, 1 being the strongest voice with respect to
 and 0 being the lowest voice compared to noise ratio.
 The pseudo-random data is not representative of a real signal,
 so the VNR scores in this example tend to be zero.
+
+.. _pipeline_example:
 
 Pipeline example
 ================

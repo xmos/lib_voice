@@ -114,7 +114,7 @@ typedef struct {
     /** EWMA of the 1 - alpha_p parameter. */
     float_s32_t one_minus_alpha_p;
 
-    /** Filter reset period value for auto-reset. */
+    /** Filter reset period value for auto-reset, specified in samples. */
     unsigned reset_period;
     /** Filter reset counter. */
     unsigned reset_counter;

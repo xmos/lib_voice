@@ -1,7 +1,9 @@
+.. _aec_module:
+
 Acoustic Echo Canceller
 =======================
 
-The lib_aec library provides functions that can be put together to
+The AEC provides functions that can be put together to
 perform Automatic Echo Cancellation on input microphone data by using
 input reference data to model the echo characteristics of the room.
 
@@ -54,9 +56,11 @@ respond to changes while more phases in main filter lead to deeper
 convergence and hence better echo cancellation at the AEC output.
 
 Before starting AEC processing or every time there’s a configuration
-change, the user needs to call aec_init() to initialise the echo
+change, the user needs to call :c:func:`aec_init()` to initialise the echo
 canceller for a desired configuration. Once the AEC is initialised, the
-library functions can be called in a logical order to perform echo
-cancellation on a frame by frame basis. Refer to the aec_1_thread and
-aec_2_threads examples to see how the functions are called to perform
-echo cancellation using one thread or 2 threads.
+user can call :c:func:`aec_process_frame` to perform echo
+cancellation on a frame by frame basis. 
+Refer to the :ref:`aec_example` to see how to initialise and perform
+echo cancellation using one or two threads.
+Alternatively, refer to :ref:`pipeline_example` to see how to use AEC
+within :ref:`stage1_module` API.
