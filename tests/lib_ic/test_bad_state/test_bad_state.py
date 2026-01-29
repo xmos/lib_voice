@@ -1,7 +1,6 @@
 # Copyright 2022-2026 XMOS LIMITED.
 # This Software is subject to the terms of the XMOS Public Licence: Version 1.
 import os
-import sys
 from pathlib import Path
 import tempfile
 
@@ -17,20 +16,13 @@ import py_voice.test.ic.ic_test_helpers as ith
 from py_voice.config import config
 from py_voice.core import leq_smooth
 
-sys.path.append('../../shared/python/')
 import py_vs_c_utils as pvc
-import xtagctl
-import xscope_fileio
 from run_dut import run_with_xscope_fileio
 
 # some mess to get the list of IRs
-home = Path(os.environ.get('hydra_audio_PATH', '~/hydra_audio'), "acoustic_team_test_audio")
+hydra_audio_path = Path(os.environ.get('hydra_audio_PATH', '~/hydra_audio')).expanduser()
 
-audio_dirs = ['speech', 'point_noise', 'playback_audio', 'ambient_noise']
-audio_path = [home / ad for ad in audio_dirs]
-audio_list = [helpers.files_of_type(ap, 'wav') for ap in audio_path]
-
-imp_path = home / 'impulse'
+imp_path = hydra_audio_path / 'acoustic_team_test_audio' / 'impulse'
 imp_list = helpers.files_of_type(imp_path, 'npy')
 
 # some possible parameters
@@ -41,24 +33,40 @@ speech_name = "007_podcast"
 speech_pos = 3
 
 xe = Path(__file__).parent / "bin" / "test_ic_bad_state.xe"
-
 ap_config_file = Path(__file__).parents[2] / "shared" / "config" / "ic_conf_no_adapt_control.json"
 ap_conf = config.get_config_dict(ap_config_file)
+cwd = Path(__file__).parent
 
-def run_xcore(conf_data, out_name, cwd='.'):
-    conf_file = Path(cwd, 'conf.bin')
-    output_file = Path(cwd, 'output.wav')
+def run_target(input_data, conf_data):
+    output_data = np.empty(0, dtype=np.int32)
 
-    conf_data.astype(np.int32).tofile(conf_file)
+    with tempfile.TemporaryDirectory(dir=".") as tmp_folder:
+        tmp_folder = Path(tmp_folder)
 
-    run_with_xscope_fileio(xe, cwd)
+        input_file = tmp_folder / "input.bin"
+        input_data.astype(np.int32).tofile(input_file)
 
-    out_data_int32, sr = sf.read(output_file, dtype='int32')
-    out_data = pvc.int32_to_float(out_data_int32)
-    os.replace(output_file, out_name)
-    os.remove(conf_file)
-    return sr, out_data
+        conf_file = tmp_folder / "conf.bin"
+        conf_data.astype(np.int32).tofile(conf_file)
 
+        run_with_xscope_fileio(xe, tmp_folder)
+
+        output_file = tmp_folder / "output.bin"
+        output_data = np.fromfile(output_file, dtype=np.int32)
+
+    return output_data
+
+def run_test(input_data, conf_data, test_name, fs):
+
+    output_data = run_target(input_data, conf_data)
+    output_data = pvc.int32_to_float(output_data)
+
+    sf.write(cwd / f"output_{test_name}.wav", output_data, fs)
+
+    # # check after 3 seconds we have converged to be better than the fixed good filter (because it should leak)
+    t, leq = leq_smooth(output_data, fs, 0.05)
+    average = np.mean(leq[(t>3)*(t<5)])
+    return average
 
 def form_conf_data(config, H_hat, num_words_H):
     conf_data = np.empty(0, dtype=np.int32)
@@ -115,48 +123,24 @@ def test_bad_state(room, speech_level, noise_name):
     )
     num_words_H = f_bin_count * 2 * phases # H_hat[ph][bin_count] for both real and complex
 
-    with tempfile.TemporaryDirectory(dir='.') as tmpdirname:
+    # crop to have full frames
+    inx = mic_sig.shape[1] // frame_advance * frame_advance
+    mic_sig = mic_sig[:, :inx]
 
-        sf.write(Path(tmpdirname, 'input.wav'), pvc.float_to_int32(mic_sig.T), fs, subtype='PCM_32')
+    sf.write(cwd / f"input_{noise_name}.wav", mic_sig.T, fs)
+    input_data = pvc.float_to_int32(mic_sig)
+    input_data = pvc.interleave_channel_frames(input_data, frame_advance)
 
-        # initialise IC to cancel the speech, auto adaptation
-        conf_data_cancel_speech = form_conf_data(0, ideal_speech_cancellation_H, num_words_H)
-        sr, out_data_adapt_bad = run_xcore(conf_data_cancel_speech, 'output_bad_' + noise_name + '.wav', cwd=tmpdirname)
+    conf_data_cancel_noise = form_conf_data(2, ideal_noise_cancellation_H, num_words_H)
+    average_fixed_good = run_test(input_data, conf_data_cancel_noise, f"good_{noise_name}", fs)
 
+    conf_data_cancel_speech = form_conf_data(0, ideal_speech_cancellation_H, num_words_H)
+    average_adapt_bad = run_test(input_data, conf_data_cancel_speech, f"bad_{noise_name}", fs)
 
-    with tempfile.TemporaryDirectory(dir='.') as tmpdirname:
-        sf.write(Path(tmpdirname, 'input.wav'), pvc.float_to_int32(mic_sig.T), fs, subtype='PCM_32')
-
-        # initialise IC to cancel the noise, don't adapt
-        conf_data_cancel_noise = form_conf_data(2, ideal_noise_cancellation_H, num_words_H)
-        sr, out_data_fixed_good = run_xcore(conf_data_cancel_noise, 'output_good_' + noise_name + '.wav', cwd=tmpdirname)
-
-        os.replace(Path(tmpdirname, 'input.wav'), Path('input_' + noise_name + '.wav'))
-
-    t, adapt_bad = leq_smooth(out_data_adapt_bad, fs, 0.05)
-    t, fixed_good = leq_smooth(out_data_fixed_good, fs, 0.05)
-
-    # check after 3 seconds we have converged to be better than the fixed good filter (because it should leak)
-    average_fixed_good = np.mean(fixed_good[(t>3)*(t<5)])
-    average_adapt_bad  = np.mean(adapt_bad[(t>3)*(t<5)])
     print(f"average_adapt_bad (dB): {average_adapt_bad}")
     print(f"average_fixed_good (dB): {average_fixed_good}")
     print(f"Assertion: adapt_bad > fixed_good: {average_adapt_bad} > {average_fixed_good} = {average_adapt_bad > average_fixed_good}")
     assert average_adapt_bad > average_fixed_good
-
-    if __name__ == "__main__":
-        t2, original_speech = leq_smooth(out_array[0, delay:, 0], fs, 0.05)
-        plt.plot(t, adapt_bad, label="adapt_bad")
-        plt.plot(t, fixed_good, label="fixed_good")
-        plt.plot(t2, original_speech, linestyle='--', label="raw_speech")
-        plt.ylim(np.array([-10, 40])-50)
-        plt.ylabel("level (dB)")
-        plt.xlabel("Time (s)")
-        plt.xlim([0, 5])
-        plt.title("Input-output VNR, lab podcast, pink noise, speech level %d dB"%speech_level)
-        plt.legend()
-        plt.grid()
-        plt.show()
 
 
 if __name__ =="__main__":

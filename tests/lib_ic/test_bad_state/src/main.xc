@@ -19,8 +19,8 @@ void test_bad_state(const char *conf_file_name, const char *input_file_name, con
 }
 
 #define CONF_NAME    "conf.bin"
-#define IN_FILE_NAME   "input.wav"
-#define OUT_FILE_NAME   "output.wav"
+#define IN_FILE_NAME   "input.bin"
+#define OUT_FILE_NAME   "output.bin"
 int main (void)
 {
   chan xscope_chan;

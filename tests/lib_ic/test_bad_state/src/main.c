@@ -7,7 +7,6 @@
 #include <limits.h>
 
 #include "fileio.h"
-#include "wav_utils.h"
 #include "xmath/xmath.h"
 #include "ic_defines.h"
 
@@ -39,57 +38,22 @@ void test_bad_state(const char *conf_file_name, const char *input_file_name, con
     file_read(&conf_file, &H_hat_data[0], num_words_H_py * sizeof(int32_t));
     test_init(adapt_mode, H_hat_data);
 
-    wav_header input_header, output_header;
-    unsigned input_header_size;
-    if(get_wav_header_details(&input_file, &input_header, &input_header_size) != 0){
-        printf("error in get_wav_header_details()\n");
-        _Exit(1);
-    }
-    file_seek(&input_file, input_header_size, SEEK_SET);
-    if(input_header.bit_depth != 32)
-    {
-        printf("Error: unsupported wav bit depth (%d) for %s file. Only 32 supported\n", input_header.bit_depth, input_file_name);
-        _Exit(1);
-    }
+    // has to be 2 channels
+    int file_size = get_file_size(&input_file);
+    int num_frames = file_size / (sizeof(int32_t) * 2);
+    unsigned block_count = num_frames / IC_FRAME_ADVANCE;
 
-    if(input_header.num_channels != 2){
-        printf("Error: wav num channels(%d) does not match ic(2)\n", input_header.num_channels);
-        _Exit(1);
-    }
-
-    int num_frames = wav_get_num_frames(&input_header);
-    unsigned block_count = num_frames / 240;
-
-    wav_form_header(&output_header,
-            input_header.audio_format,
-            1,
-            input_header.sample_rate,
-            input_header.bit_depth,
-            block_count * 240);
-
-    file_write(&output_file, (uint8_t*)(&output_header),  WAV_HEADER_BYTES);
-
-    int32_t in_buff [240 * 2];
-    int32_t DWORD_ALIGNED y_frame[240];
-    int32_t DWORD_ALIGNED x_frame[240];
-    int32_t DWORD_ALIGNED output_frame[240];
-
-    unsigned bytes_per_frame = wav_get_num_bytes_per_frame(&input_header);
+    int32_t DWORD_ALIGNED y_frame[IC_FRAME_ADVANCE];
+    int32_t DWORD_ALIGNED x_frame[IC_FRAME_ADVANCE];
+    int32_t DWORD_ALIGNED output_frame[IC_FRAME_ADVANCE];
 
     for(unsigned b = 0; b < block_count; b++){
-        //printf("frame %d of %d\n", b, block_count);
-        long input_location =  wav_get_frame_start(&input_header, b * 240, input_header_size);
-        file_seek (&input_file, input_location, SEEK_SET);
-        file_read (&input_file, (uint8_t*)&in_buff[0], bytes_per_frame* 240);
-        for(unsigned f = 0; f < 240; f++){
-            unsigned i = (f * 2);
-            y_frame[f] = in_buff[i];
-            x_frame[f] = in_buff[i + 1];
-        }
+        file_read(&input_file, (uint8_t*)&y_frame[0], sizeof(int32_t) * IC_FRAME_ADVANCE);
+        file_read(&input_file, (uint8_t*)&x_frame[0], sizeof(int32_t) * IC_FRAME_ADVANCE);
 
         test(output_frame, y_frame, x_frame);
 
-        file_write(&output_file, (uint8_t*)(output_frame), output_header.bit_depth / 8 * 240);
+        file_write(&output_file, (uint8_t*)(output_frame), sizeof(int32_t) * IC_FRAME_ADVANCE);
     }
 
     file_close(&input_file);
@@ -99,7 +63,7 @@ void test_bad_state(const char *conf_file_name, const char *input_file_name, con
 
 #if X86_BUILD
 int main(int argc, char **argv) {
-    test_bad_state("conf.bin", "input.wav", "output.wav");
+    test_bad_state("conf.bin", "input.bin", "output.bin");
     return 0;
 }
 #endif
