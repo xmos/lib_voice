@@ -5,6 +5,7 @@ import os.path
 from aec_test_utils import get_h_hat_impulse_response
 from plot_test import plot_test, plot_impulseresponse_test
 import shutil
+from pathlib import Path
 
 import xml.etree.ElementTree as ET
 
@@ -13,8 +14,10 @@ parser.read("parameters.cfg")
 results_dir = parser.get("Folders", "results_dir")
 plot_dir_pass = os.path.join(results_dir, "plots")
 plot_dir_fail = os.path.join(results_dir, "plots/fail")
+Path(plot_dir_fail).absolute().mkdir(parents=True, exist_ok=True)
 log_dir_pass = os.path.join(results_dir, "logs")
 log_dir_fail = os.path.join(results_dir, "logs/fail")
+Path(log_dir_fail).absolute().mkdir(parents=True, exist_ok=True)
 
 out_dir = parser.get("Folders", "out_dir")
 

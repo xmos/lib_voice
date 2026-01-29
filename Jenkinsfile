@@ -449,22 +449,18 @@ pipeline {
                         junit "pytest_result.xml"
                       }
                       dir("test_aec_spec") {
-                        sh "./make_dirs.sh"
                         script {
                           if (env.FULL_TEST == "0") {
                             sh 'mv excluded_tests_quick.txt excluded_tests.txt'
                           }
                         }
                         sh "python generate_audio.py"
-                        sh "pytest -n 2 --junitxml=pytest_result.xml test_process_audio.py"
-                        sh "cp pytest_result.xml results_process.xml"
+                        sh "pytest -n 2 --junitxml=results_process.xml test_process_audio.py"
                         catchError {
-                          sh "pytest --junitxml=pytest_result.xml test_check_output.py"
+                          sh "pytest --junitxml=results_check.xml test_check_output.py"
                         }
-                        sh "cp pytest_result.xml results_check.xml"
                         sh "python parse_results.py"
-                        sh "pytest --junitxml=pytest_results.xml test_evaluate_results.py"
-                        sh "cp pytest_result.xml results_final.xml"
+                        sh "pytest --junitxml=results_final.xml test_evaluate_results.py"
                         junit "results_final.xml"
                       }
                     }

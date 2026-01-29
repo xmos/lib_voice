@@ -1,68 +1,58 @@
 # Copyright 2021-2026 XMOS LIMITED.
 # This Software is subject to the terms of the XMOS Public Licence: Version 1.
 import configparser
-import os.path
 import pytest
 from aec_test_utils import get_test_instances, read_config
 
 import os
 import tempfile
-import scipy.io.wavfile
 import numpy as np
 import shutil
-import tempfile
-import xscope_fileio
-import xtagctl
-import glob
+from pathlib import Path
+import soundfile as sf
+from run_dut import run_with_xscope_fileio
 
 parser = configparser.ConfigParser()
 parser.read("parameters.cfg")
 
 in_dir   = parser.get("Folders", "in_dir")
 out_dir = parser.get("Folders", "out_dir")
+(Path(__file__).parent / out_dir).mkdir(exist_ok=True)
 
 y_channel_count = parser.get("Config", "y_channel_count")
 x_channel_count = parser.get("Config", "x_channel_count")
 phases = parser.get("Config", "phases")
 
-aec_xe = os.path.abspath(glob.glob(f"{parser.get('Binaries', 'aec_xc_dir')}/bin/*.xe")[0])
-
+aec_xe = Path(__file__).parent / "bin" / "test_aec_spec.xe"
 
 dut_in_wav = "input.wav"
 dut_out_wav = "output.wav"
 runtime_args_file = "args.bin"
 dut_H_hat_file = "H_hat.bin"
 def run_aec_xc(audio_in, audio_ref, audio_out, adapt=-1, h_hat_dump=None):
-    rate, y_data = scipy.io.wavfile.read(audio_in)
-    rate, x_data = scipy.io.wavfile.read(audio_ref)
-    if(y_data.ndim == 1):
-        y_data = np.atleast_2d(y_data).T
-        x_data = np.atleast_2d(x_data).T
+    y_data, rate = sf.read(audio_in, dtype="int32", always_2d=True)
+    x_data, rate = sf.read(audio_ref, dtype="int32", always_2d=True)
     data = np.hstack((y_data, x_data)) #mic+ref
-    scipy.io.wavfile.write(dut_in_wav, rate, data)
 
-    tmp_folder = tempfile.mkdtemp()
-    scipy.io.wavfile.write(os.path.join(tmp_folder, dut_in_wav), rate, data)
+    sf.write(dut_in_wav, data, rate)
+
+    with tempfile.TemporaryDirectory(dir=".") as tmp_folder:
+
+        sf.write(os.path.join(tmp_folder, dut_in_wav), data, rate, "PCM_32")
     
-    prev_path = os.getcwd()
-    os.chdir(tmp_folder)    
-        
-    with open(runtime_args_file, "wb") as ref_file:
-        ref_file.write(f"stop_adapting {adapt}".encode('utf-8'))
+        with open(os.path.join(tmp_folder, runtime_args_file), "wb") as ref_file:
+            ref_file.write(f"stop_adapting {adapt}".encode('utf-8'))
 
-    with xtagctl.acquire("XCORE-AI-EXPLORER") as adapter_id:
-        xscope_fileio.run_on_target(adapter_id, aec_xe)
+        stdo = run_with_xscope_fileio(aec_xe, tmp_folder)
 
-    os.chdir(prev_path)
-    #test_check_output expects a 2 channel output despite building AEC for 1 y channel, so convert dut output to 2ch
-    rate, data = scipy.io.wavfile.read(os.path.join(tmp_folder, dut_out_wav))
-    if(data.ndim == 1):
-        data = np.atleast_2d(data).T
-    data = np.hstack((data, data))
-    scipy.io.wavfile.write(audio_out, rate, data)
-    if h_hat_dump != None:
-        shutil.copy2(os.path.join(tmp_folder, dut_H_hat_file), h_hat_dump)
-    shutil.rmtree(tmp_folder, ignore_errors=True)    
+        #test_check_output expects a 2 channel output despite building AEC for 1 y channel, so convert dut output to 2ch
+        data, rate = sf.read(os.path.join(tmp_folder, dut_out_wav), dtype="int32", always_2d=True)
+        data = np.hstack((data, data))
+
+        if h_hat_dump != None:
+            shutil.copy2(os.path.join(tmp_folder, dut_H_hat_file), h_hat_dump)
+
+    sf.write(audio_out, data, rate, "PCM_32")
 
 
 @pytest.fixture
