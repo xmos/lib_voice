@@ -15,6 +15,7 @@ import configparser
 parser = configparser.ConfigParser()
 parser.read("parameters.cfg")
 filter_dir = parser.get("Folders", "filter_dir")
+(Path(__file__).parent / filter_dir).mkdir(exist_ok=True)
 
 @pytest.mark.parametrize("channel_count", [1, 2])
 def test_skype(channel_count):

@@ -26,6 +26,7 @@ import configparser
 parser = configparser.ConfigParser()
 parser.read("parameters.cfg")
 filter_dir = parser.get("Folders", "filter_dir")
+(Path(__file__).parent / filter_dir).mkdir(exist_ok=True)
 
 import pytest
 
