@@ -1,7 +1,7 @@
 # Copyright 2022-2026 XMOS LIMITED.
 # This Software is subject to the terms of the XMOS Public Licence: Version 1.
 
-from run_test import run_test
+from .run_test import run_test
 
 test_name = 'test_wav_delay_estimator_controller'
 

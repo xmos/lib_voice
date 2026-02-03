@@ -3,9 +3,6 @@
 import os
 import tempfile
 import shutil
-import xscope_fileio
-import xtagctl
-import re
 import pytest
 from pathlib import Path
 from profile_xcore import parse_profile_log
