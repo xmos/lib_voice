@@ -3,7 +3,7 @@
 import numpy as np
 import py_voice.modules.vnr as vnr
 import py_vs_c_utils as pvc
-from test_utils import rand_int32_arr, stft, BATCH_SIZE
+from test_utils import stft, BATCH_SIZE
 
 def test_vnr_extract_features(rng, quantise, vnr_obj, dut_runner):
 
@@ -23,7 +23,7 @@ def test_vnr_extract_features(rng, quantise, vnr_obj, dut_runner):
     for _ in range(test_frames):
         enable_highpass = rng.integers(2)
 
-        data = rand_int32_arr(rng, vnr.FRAME_ADVANCE, 8)
+        data = pvc.rand_int32_arr(rng, vnr.FRAME_ADVANCE, 8)
 
         input_data = np.append(input_data, data)
         input_data = np.append(input_data, enable_highpass)

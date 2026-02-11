@@ -3,7 +3,7 @@
 import numpy as np
 import py_voice.modules.vnr as vnr
 import py_vs_c_utils as pvc
-from test_utils import rand_int32_arr, stft
+from test_utils import stft
 
 def test_vnr_form_input_frame(rng, dut_runner):
     input_words_per_frame = vnr.FRAME_ADVANCE #No. of int32 values sent to dut as input per frame
@@ -19,7 +19,7 @@ def test_vnr_form_input_frame(rng, dut_runner):
     ref_output = np.empty(0, dtype=np.complex128)
     for _ in range(test_frames):
         # Generate input data
-        data = rand_int32_arr(rng, vnr.FRAME_ADVANCE, 8)
+        data = pvc.rand_int32_arr(rng, vnr.FRAME_ADVANCE, 8)
         input_data = np.append(input_data, data)
 
         # Ref form input frame implementation

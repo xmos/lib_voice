@@ -4,7 +4,6 @@
 import numpy as np
 import py_voice.modules.vnr as vnr
 import py_vs_c_utils as pvc
-from test_utils import rand_int32_arr
 
 def test_vnr_priv_mel_compute(rng, vnr_obj, dut_runner):
 
@@ -22,7 +21,7 @@ def test_vnr_priv_mel_compute(rng, vnr_obj, dut_runner):
     ref_output_float = np.empty(0, dtype=np.float64)
     for _ in range(test_frames):
         exp = rng.integers(-32, -8)
-        data = rand_int32_arr(rng, fd_frame_len*2, 5)
+        data = pvc.rand_int32_arr(rng, fd_frame_len*2, 5)
         input_data = np.append(input_data, exp)
         input_data = np.append(input_data, data)
 

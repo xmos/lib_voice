@@ -7,12 +7,6 @@ from xmos_ai_tools.xinterpreters import TFLMHostInterpreter
 
 BATCH_SIZE = vnr.PATCH_WIDTH * vnr.MEL_FILTERS
 
-def rand_int32_arr(rng, size=None, hr_max=1, min=np.iinfo(np.int32).min, max=np.iinfo(np.int32).max+1):
-    hr = rng.integers(hr_max)
-    data = rng.integers(min, max, size=size, dtype=np.int32)
-    data >>= hr
-    return data
-
 def stft(x_data, new_x_frame, x_data_len, new_x_frame_len, nfft):
     x_data = np.roll(x_data, -new_x_frame_len, axis=0)
     x_data[x_data_len - new_x_frame_len:] = new_x_frame

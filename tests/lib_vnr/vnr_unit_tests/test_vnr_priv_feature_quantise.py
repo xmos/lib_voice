@@ -2,7 +2,7 @@
 # This Software is subject to the terms of the XMOS Public Licence: Version 1.
 import numpy as np
 import py_vs_c_utils as pvc
-from test_utils import rand_int32_arr, BATCH_SIZE
+from test_utils import BATCH_SIZE
 
 def test_vnr_priv_feature_quantise(rng, quantise, dut_runner):
     input_words_per_frame = BATCH_SIZE + 1 # 96 mantissas and 1 exponent
@@ -13,7 +13,7 @@ def test_vnr_priv_feature_quantise(rng, quantise, dut_runner):
     ref_output = np.empty(0, dtype=np.int8)
     for _ in range(test_frames):
         # By setting high=1 we enure no value is greater than 0 since max normalised output is 0
-        data = rand_int32_arr(rng, BATCH_SIZE, max=1)
+        data = pvc.rand_int32_arr(rng, BATCH_SIZE, max=1)
         exp = rng.integers(-31, 0) # exp
         input_data = np.append(input_data, exp)
         input_data = np.append(input_data, data)

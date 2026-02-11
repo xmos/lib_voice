@@ -1,7 +1,6 @@
 # Copyright 2025-2026 XMOS LIMITED.
 # This Software is subject to the terms of the XMOS Public Licence: Version 1.
 import numpy as np
-from test_utils import rand_int32_arr
 import py_vs_c_utils as pvc
 
 def test_vnr_priv_output_dequantise(rng, dequantise, dut_runner):
@@ -14,7 +13,7 @@ def test_vnr_priv_output_dequantise(rng, dequantise, dut_runner):
     ref_output_double = np.empty(0, dtype=np.float64)
 
     for _ in range(test_frames):
-        data = rand_int32_arr(rng, 1, min=np.iinfo(np.int8).min, max=np.iinfo(np.int8).max + 1)
+        data = pvc.rand_int32_arr(rng, 1, min=np.iinfo(np.int8).min, max=np.iinfo(np.int8).max + 1)
         input_data = np.append(input_data, data)
 
         # Reference dequantise implementation

@@ -4,7 +4,6 @@
 import numpy as np
 import py_voice.modules.vnr as vnr
 import py_vs_c_utils as pvc
-from test_utils import rand_int32_arr
 
 def test_vnr_priv_log2(rng, dut_runner):
 
@@ -21,8 +20,8 @@ def test_vnr_priv_log2(rng, dut_runner):
 
     for _ in range(test_frames):
         data = np.zeros(vnr.MEL_FILTERS*2, dtype=np.int32)
-        data[0::2] = rand_int32_arr(rng, vnr.MEL_FILTERS, 5, min=1)
-        data[1::2] = rand_int32_arr(rng, vnr.MEL_FILTERS, min=-32, max=16) # exp
+        data[0::2] = pvc.rand_int32_arr(rng, vnr.MEL_FILTERS, 5, min=1)
+        data[1::2] = pvc.rand_int32_arr(rng, vnr.MEL_FILTERS, min=-32, max=16) # exp
         data = np.array(data, dtype=np.int32)
         input_data = np.append(input_data, data)
 

@@ -3,7 +3,7 @@
 import numpy as np
 import py_voice.modules.vnr as vnr
 import py_vs_c_utils as pvc
-from test_utils import rand_int32_arr, BATCH_SIZE
+from test_utils import BATCH_SIZE
 
 def test_vnr_priv_normalise_patch(rng, vnr_obj, dut_runner):
 
@@ -17,7 +17,7 @@ def test_vnr_priv_normalise_patch(rng, vnr_obj, dut_runner):
     ref_output_float = np.empty(0, dtype=np.float64)
     for _ in range(test_frames):
         # Generate input data
-        data = rand_int32_arr(rng, vnr.MEL_FILTERS, 8)
+        data = pvc.rand_int32_arr(rng, vnr.MEL_FILTERS, 8)
         input_data = np.append(input_data, data)
 
         # Ref form input frame implementation
