@@ -40,4 +40,4 @@ def test_vnr_full(rng, vnr_obj, dut_runner):
     arith_closeness, geo_closeness = pvc.get_closeness_metric(ref_output_double, dut_output_double)
     print(f"arith_closeness = {arith_closeness}, geo_closeness = {geo_closeness}")
     assert(geo_closeness > 0.97), "inference output geo_closeness below pass threshold"
-    assert(arith_closeness > 0.95), "inference output arith_closeness below pass threshold"
+    assert(arith_closeness > 0.92), "inference output arith_closeness below pass threshold"

@@ -4,6 +4,14 @@ import pytest
 import subprocess
 import xtagctl
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--arch",
+        action = "store",
+        default = "xs3a",
+        help = "Architecture to run on",
+        choices = ["xs3a", "vx4b", "sim"],
+    )
 
 def pytest_collect_file(parent, file_path):
     if(file_path.suffix == ".xe"):
@@ -12,13 +20,17 @@ def pytest_collect_file(parent, file_path):
 
 class UnityTestSource(pytest.File):
     def collect(self):
-        yield UnityTestExecutable.from_parent(self, fspath=self.fspath, name=self.name)
+        selected_arch = self.config.getoption("arch")
+        yield UnityTestExecutable.from_parent(
+            self, fspath=self.fspath, name=self.name, arch=selected_arch
+        )
 
 
 class UnityTestExecutable(pytest.Item):
-    def __init__(self, fspath, name, parent):
+    def __init__(self, fspath, name, parent, arch):
         super(UnityTestExecutable, self).__init__(name, parent)
         self.fspath = fspath
+        self.arch = arch
         self._nodeid = self.name  # Override the naming to suit C better
 
     def runtest(self):
@@ -26,9 +38,17 @@ class UnityTestExecutable(pytest.Item):
         simulator_fail = False
         test_output = None
         try:
-            print("run xrun for executable ", self.fspath)
-            with xtagctl.acquire("XCORE-AI-EXPLORER") as adapter_id:
-                test_output = subprocess.check_output(['xrun', '--io', '--adapter-id', adapter_id, self.fspath], text=True, stderr=subprocess.STDOUT)
+            # NOTE: pytest calls runtest() with no parameters; pass data in via
+            # config/options during collection and store it on the item.
+            print(f"run executable {self.fspath} on arch {self.arch}")
+            if self.arch == "xs3a" or self.arch == "vx4b":
+                hw_target = "XCORE-AI-EXPLORER" if self.arch == "xs3a" else "XK-EVK-XU416"
+                with xtagctl.acquire(hw_target) as adapter_id:
+                    test_output = subprocess.check_output(['xrun', '--io', '--adapter-id', adapter_id, self.fspath], text=True, stderr=subprocess.STDOUT)
+            elif self.arch == "sim":
+                test_output = subprocess.check_output(['xsim', self.fspath], text=True, stderr=subprocess.STDOUT)
+            else:
+                assert 0, f"Architecture {self.arch} not supported"
         except subprocess.CalledProcessError as e:
             # Unity exits non-zero if an assertion fails
             simulator_fail = True

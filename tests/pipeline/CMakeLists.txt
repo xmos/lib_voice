@@ -3,7 +3,12 @@ cmake_minimum_required(VERSION 3.21)
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 project(test_pipeline)
 
-set(APP_HW_TARGET XK-EVK-XU316)
+if(DEFINED XCORE_TARGET)
+    set(APP_HW_TARGET ${XCORE_TARGET})
+else()
+    set(APP_HW_TARGET XK-EVK-XU316)
+endif()
+
 set(XMOS_SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../../../)
 set(CONFIG_XSCOPE_PATH ${XMOS_SANDBOX_DIR}/lib_voice/tests/shared/file_utils)
 file(GLOB CONFIG_XSCOPE_REL_PATH

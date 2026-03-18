@@ -202,3 +202,19 @@ void wrapper_task(const char *input_file_name, const char *output_file_name)
  *
  * Done.
  */
+
+#include <xcore/chanend.h>
+#include <xscope_io_device.h>
+#include <stdlib.h>
+
+#define IN_WAV_FILE_NAME    "input.bin"
+#define OUT_WAV_FILE_NAME   "output.bin"
+
+int main(void)
+{
+    chanend_t xscope_chan = chanend_alloc();
+    xscope_io_init(xscope_chan);
+    wrapper_task(IN_WAV_FILE_NAME, OUT_WAV_FILE_NAME);
+    _Exit(0);
+    return 0;
+}

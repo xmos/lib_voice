@@ -18,11 +18,6 @@ file(GLOB APP_C_SRCS
     ${XMOS_SANDBOX_DIR}/lib_voice/tests/lib_vnr/vnr_unit_tests/src/main.c
     ${CMAKE_CURRENT_LIST_DIR}/src/*.c)
 
-file(RELATIVE_PATH APP_XC_SRCS
-    ${CMAKE_CURRENT_LIST_DIR}
-    ${XMOS_SANDBOX_DIR}/lib_voice/tests/lib_vnr/vnr_unit_tests/src/main.xc
-    )
-
 set(APP_INCLUDES
     ${CMAKE_CURRENT_LIST_DIR}/src
     ${CMAKE_CURRENT_LIST_DIR}/../../shared/file_utils/src)

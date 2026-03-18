@@ -7,7 +7,9 @@
 #include <xcore/parallel.h>
 #include <xcore/assert.h>
 #include <xcore/hwtimer.h>
+#include <xcore/thread.h>
 #include "xmath/xmath.h"
+#include "xscope_io_device.h"
 #include "fileio.h"
 
 #include "pipeline_config.h"
@@ -16,6 +18,9 @@
 DECLARE_JOB(tx, (chanend_t, chanend_t, const char*));
 DECLARE_JOB(pipeline_tile0, (chanend_t, chanend_t));
 DECLARE_JOB(rx, (chanend_t, chanend_t, const char*));
+
+DECLARE_JOB(main_tile0, (chanend_t, chanend_t, const char *, const char *));
+DECLARE_JOB(main_tile1, (chanend_t, chanend_t));
 
 extern void pipeline_tile1(chanend_t c_pcm_in_b, chanend_t c_pcm_out_a);
 
@@ -79,3 +84,107 @@ void main_tile1(chanend_t c_t0_t1, chanend_t c_t1_t0)
     pipeline_tile1(c_t0_t1, c_t1_t0);
 }
 
+extern void pipeline_stage_1(chanend_t c_frame_in, chanend_t c_frame_out);
+extern void pipeline_stage_2(chanend_t c_frame_in, chanend_t c_frame_out);
+extern void pipeline_stage_3(chanend_t c_frame_in, chanend_t c_frame_out);
+extern void pipeline_stage_4(chanend_t c_frame_in, chanend_t c_frame_out);
+
+void st1(void *d){
+    chanend_t a = ((chanend_t *)d)[0];
+    chanend_t b = ((chanend_t *)d)[1];
+    pipeline_stage_1(a, b);
+}
+
+void st2(void *d){
+    chanend_t a = ((chanend_t *)d)[0];
+    chanend_t b = ((chanend_t *)d)[1];
+    pipeline_stage_2(a, b);
+}
+
+void st3(void *d){
+    chanend_t a = ((chanend_t *)d)[0];
+    chanend_t b = ((chanend_t *)d)[1];
+    pipeline_stage_3(a, b);
+}
+
+void st4(void *d){
+    chanend_t a = ((chanend_t *)d)[0];
+    chanend_t b = ((chanend_t *)d)[1];
+    pipeline_stage_4(a, b);
+}
+
+void tx_w(void *d){
+    chanend_t a = ((chanend_t *)d)[0];
+    chanend_t b = ((chanend_t *)d)[1];
+    tx(a, b, "input.bin");
+}
+
+void rx_w(void *d){
+    chanend_t a = ((chanend_t *)d)[0];
+    chanend_t b = ((chanend_t *)d)[1];
+    rx(a, b, "output.bin");
+}
+
+#define STACK_SIZE_FOR(F) \
+  ({ \
+     register unsigned r; \
+     asm volatile ( \
+         ".globl " #F ".stack_bytes\n\t" \
+        ".resource_get " #F ".stack_bytes, \"stack_bytes\", " #F "\n\t" \
+        "lui %[r], %%hi(" #F ".stack_bytes)\n\t" \
+        "addi %[r], %[r], %%lo(" #F ".stack_bytes)" \
+        : [r]"=r"(r)); \
+     r; })
+
+int main() {
+    (void)STACK_SIZE_FOR(tx_w);
+    (void)STACK_SIZE_FOR(st1);
+    (void)STACK_SIZE_FOR(st2);
+    (void)STACK_SIZE_FOR(st3);
+    (void)STACK_SIZE_FOR(st4);
+    // (void)STACK_SIZE_FOR(rx_w);
+
+    chanend_t xscope_chan = chanend_alloc();
+    channel_t tx_to_st1 = chan_alloc();
+    channel_t tx_to_rx = chan_alloc();
+    channel_t st1_to_st2 = chan_alloc();
+    channel_t st2_to_st3 = chan_alloc();
+    channel_t st3_to_st4 = chan_alloc();
+    channel_t st4_to_rx = chan_alloc();
+    xscope_io_init(xscope_chan);
+
+    __attribute__((aligned(16))) char tx_stack[5000];
+    __attribute__((aligned(16))) char st1_stack[24000];
+    __attribute__((aligned(16))) char st2_stack[65000];
+    __attribute__((aligned(16))) char st3_stack[28000];
+    __attribute__((aligned(16))) char st4_stack[5000];
+    // __attribute__((aligned(16))) char rx_stack[150000];
+
+    chanend_t tx_data[2] = {tx_to_st1.end_a, tx_to_rx.end_a};
+    chanend_t st1_data[2] = {tx_to_st1.end_b, st1_to_st2.end_a};
+    chanend_t st2_data[2] = {st1_to_st2.end_b, st2_to_st3.end_a};
+    chanend_t st3_data[2] = {st2_to_st3.end_b, st3_to_st4.end_a};
+    chanend_t st4_data[2] = {st3_to_st4.end_b, st4_to_rx.end_a};
+    chanend_t rx_data[2] = {st4_to_rx.end_b, tx_to_rx.end_b};
+
+    threadgroup_t thg = thread_group_alloc();
+    thread_group_add(thg, tx_w, &tx_data[0], stack_base(&tx_stack[0], sizeof(tx_stack)/4));
+    thread_group_add(thg, st1, &st1_data[0], stack_base(&st1_stack[0], sizeof(st1_stack)/4));
+    thread_group_add(thg, st2, &st2_data[0], stack_base(&st2_stack[0], sizeof(st2_stack)/4));
+    thread_group_add(thg, st3, &st3_data[0], stack_base(&st3_stack[0], sizeof(st3_stack)/4));
+    thread_group_add(thg, st4, &st4_data[0], stack_base(&st4_stack[0], sizeof(st4_stack)/4));
+    // thread_group_add(thg, rx_w, &rx_data[0], stack_base(&rx_stack[0], sizeof(rx_stack)/4));
+    thread_group_start(thg);
+
+    rx_w(&rx_data[0]);
+
+    thread_group_wait_and_free(thg);
+
+    chanend_free(xscope_chan);
+    chan_free(tx_to_st1);
+    chan_free(tx_to_rx);
+    chan_free(st1_to_st2);
+    chan_free(st2_to_st3);
+    chan_free(st3_to_st4);
+    chan_free(st4_to_rx);
+}

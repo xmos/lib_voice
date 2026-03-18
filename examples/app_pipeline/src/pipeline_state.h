@@ -16,7 +16,7 @@ typedef struct {
 typedef struct {
     // Stage1 - AEC, DE, ADEC
     stage1_t DWORD_ALIGNED stage_1_state;
-} pipeline_state_tile0_t;
+} pipeline_state_thread0_t;
 
 typedef struct {
     // IC, VNR
@@ -26,6 +26,6 @@ typedef struct {
     ns_state_t DWORD_ALIGNED ns_state;
     // AGC
     agc_state_t agc_state;
-} pipeline_state_tile1_t;
+} pipeline_state_thread1_t;
 
 #endif

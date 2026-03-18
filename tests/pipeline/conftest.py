@@ -140,7 +140,20 @@ def pytest_sessionfinish(session):
                     tlf.write("Input,Sensory_rpi-31000,Sensory_v6_1mb,Amazon_WR_250k.en-US\n")
                     tlf.writelines(target_log)
 
+def pytest_addoption(parser):
+  parser.addoption(
+    "--arch",
+    nargs = "+",
+    default = ["xs3a"],
+    help = "One or more architectures to run on (e.g. --arch xs3a sim)",
+    choices = ["xs3a", "vx4b"],
+  )
 
 def pytest_generate_tests(metafunc):
     ids = [item[0].name + ", " + item[1] + ", " + item[2] for item in all_tests_list]
     metafunc.parametrize("test", all_tests_list, ids=ids)
+    if "target_arch" in metafunc.fixturenames:
+        selected_arches = metafunc.config.getoption("arch")
+        if isinstance(selected_arches, str):
+            selected_arches = [selected_arches]
+        metafunc.parametrize("target_arch", selected_arches)

@@ -14,6 +14,7 @@ def test_wav(
     output_channels,
     output_frame_len,
     sample_rate=16000,
+    target="xs3a",
     **run_kwargs,  # pass-through to run_dut and further
 ):
     """
@@ -68,7 +69,7 @@ def test_wav(
 
     # Run DUT
     print(f"input_q31.shape = {input_q31.shape}")
-    output_interleaved_q31, xcore_stdout = run_dut(input_q31, xe_path, **run_kwargs)
+    output_interleaved_q31, xcore_stdout = run_dut(input_q31, xe_path, target, **run_kwargs)
 
     # Deinterleave output to (channels, frames) format
     output_q31 = pvc.deinterleave_channel_frames(

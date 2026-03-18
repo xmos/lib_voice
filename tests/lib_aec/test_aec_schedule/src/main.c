@@ -3,6 +3,10 @@
 
 #include "voice.h"
 #include <fileio.h>
+#include <xcore/chanend.h>
+#if TEST_WAV_XSCOPE
+#include "xscope_io_device.h"
+#endif
 
 extern aec_task_distribution_t tdist;
 void test_aec(int32_t (*input)[AEC_FRAME_ADVANCE],
@@ -48,4 +52,16 @@ void wrapper_task(const char *input_file_name, const char *output_file_name)
     file_close(&input_file);
     file_close(&output_file);
     shutdown_session();
+}
+
+int main() {
+#if TEST_WAV_XSCOPE
+    chanend_t xscope_chan = chanend_alloc();
+    xscope_io_init(xscope_chan);
+#endif
+    wrapper_task("input.bin", "output.bin");
+#if TEST_WAV_XSCOPE
+    chanend_free(xscope_chan);
+#endif
+    return 0;
 }

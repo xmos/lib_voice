@@ -1,20 +1,21 @@
 set(LIB_NAME lib_voice)
 set(LIB_VERSION 1.0.0)
-set(LIB_DEPENDENT_MODULES "lib_xcore_math(2.4.1)")
+set(LIB_DEPENDENT_MODULES "lib_xcore_math(lib_voice_fixes)")
 
 set(LIB_COMPILER_FLAGS
             -g
             -Os
             -DHEADROOM_CHECK=0)
 
-if(BUILD_NATIVE)
-    list(APPEND LIB_COMPILER_FLAGS
-        -D__xtflm_conf_h_exists__
-        -DNN_USE_REF
-    )
-endif()
+# if(BUILD_NATIVE)
+#     list(APPEND LIB_COMPILER_FLAGS
+#         -D__xtflm_conf_h_exists__
+#         -DNN_USE_REF
+#     )
+# endif()
 
 set(LIB_CXX_SRCS "")
+set(lib_ASM_SRCS "")
 include(${CMAKE_CURRENT_LIST_DIR}/vnr_model.cmake)
 file(RELATIVE_PATH MODEL_OUT_DIR_REL ${CMAKE_CURRENT_LIST_DIR} ${MODEL_OUT_DIR})
 
@@ -70,7 +71,7 @@ foreach(target ${APP_BUILD_TARGETS})
 
     # Link aitools with the targets
     target_link_libraries(${target} PRIVATE tflite_micro)
-if(BUILD_NATIVE)
-    target_compile_features(${target} PRIVATE cxx_std_11)
-endif()
+# if(BUILD_NATIVE)
+#     target_compile_features(${target} PRIVATE cxx_std_11)
+# endif()
 endforeach()

@@ -14,20 +14,10 @@ from test_wav import test_wav
 sys.path.append(str(Path(__file__).parent / "py_pipeline"))
 import wav_pipeline
 
-def process_xcore(xe_file, input_file, output_file):
+def process_xcore(xe_file, input_file, output_file, target_arch="xs3a"):
     frame_advance = 240
     AP_MAX_Y_CHANNELS = 2
-    stdout = test_wav(xe_file, input_file, output_file, frame_advance, AP_MAX_Y_CHANNELS, frame_advance, timeout=xtag_aquire_timeout_s)
-    '''
-    with tempfile.TemporaryDirectory(dir=".") as tmp_folder:
-        tmp_folder = Path(tmp_folder)
-        shutil.copyfile(input_file, tmp_folder / "input.wav")
-
-        #Make sure we can wait for 2 processing occurances to finish
-        stdout = run_with_xscope_fileio(xe_file, tmp_folder, xtag_aquire_timeout_s)
-
-        shutil.copyfile(tmp_folder / "output.wav", output_file)
-    '''
+    stdout = test_wav(xe_file, input_file, output_file, frame_advance, AP_MAX_Y_CHANNELS, frame_advance, target=target_arch, timeout=xtag_aquire_timeout_s)
     return stdout
 
 def process_python(input_file, output_file, arch):
@@ -52,13 +42,13 @@ def process_python(input_file, output_file, arch):
     stdo = ""
     return stdo
 
-def process_file(input_file, arch, target="xcore"):
+def process_file(input_file, arch, target="xcore", target_arch="xs3a"):
     wav_name = input_file.name
     output_file = Path(__file__).parent / f"{pipeline_output_base_dir}_{arch}_{target}" / wav_name
 
     if target == "xcore":
         pipeline_bin = pipeline_bins[arch][target]
-        stdout = process_xcore(pipeline_bin, input_file, output_file)
+        stdout = process_xcore(pipeline_bin, input_file, output_file, target_arch)
     elif target == "python":
         stdout = process_python(input_file, output_file, arch)
     else:

@@ -17,7 +17,7 @@ def get_binary_path(xe, target="xs3a"):
     assert len(xe_path.suffixes) <= 1, f"Path has multiple suffixes: {xe_path}"
     xe_path = xe_path.with_suffix("")
 
-    if target == "xs3a":
+    if target == "xs3a" or target == "vx4b":
         return xe_path.with_suffix(".xe")
     elif target == "native":
         pltfm = platform.system()
@@ -28,7 +28,7 @@ def get_binary_path(xe, target="xs3a"):
         assert 0, f"{target} target is unsupported"
 
 
-def run_with_xscope_fileio(xe_path, cwd, timeout=600):
+def run_with_xscope_fileio(xe_path, cwd, target="xs3a", timeout=6):
     """
     Run a .xe image on hardware via xscope_fileio, capturing device stdout.
 
@@ -48,7 +48,8 @@ def run_with_xscope_fileio(xe_path, cwd, timeout=600):
     """
     target_stdout = []
 
-    with xtagctl.acquire("XCORE-AI-EXPLORER", timeout=timeout) as adapter_id:
+    hw_target = "XCORE-AI-EXPLORER" if target == "xs3a" else "XK-EVK-XU416"
+    with xtagctl.acquire(hw_target, timeout=timeout) as adapter_id:
         print(f"Running on {adapter_id}")
         with open(Path(cwd, "stdout.txt"), "w+") as ff:
             xscope_fileio.run_on_target(adapter_id, str(xe_path), cwd=str(cwd), stdout=ff)
@@ -62,13 +63,13 @@ def run_with_xscope_fileio(xe_path, cwd, timeout=600):
             target_stdout.append(re.sub(r'\[DEVICE\]\s*', '', line))
     return target_stdout
 
-def _run_dut_inner(input_data, xe_path, tmp_path, **run_kwargs):
+def _run_dut_inner(input_data, xe_path, tmp_path, target="xs3a", **run_kwargs):
     """Internal helper that performs the actual DUT execution."""
     input_file = tmp_path / "input.bin"
     input_data.astype(np.int32).tofile(input_file)
 
     if xe_path.suffix == ".xe":
-        target_stdout = run_with_xscope_fileio(xe_path, tmp_path, **run_kwargs)
+        target_stdout = run_with_xscope_fileio(xe_path, tmp_path, target, **run_kwargs)
     else:
         res = subprocess.run(
             [str(xe_path), "input.bin", "output.bin"],
@@ -115,12 +116,12 @@ def run_dut(input_data, xe, target="xs3a", tmp_folder=None, **run_kwargs):
         print(f"running DUT from pre-created tmp directory {tmp_folder}")
         tmp_path = Path(tmp_folder)
         tmp_path.mkdir(parents=True, exist_ok=True)
-        output_data, target_stdout = _run_dut_inner(input_data, xe_path, tmp_path, **run_kwargs)
+        output_data, target_stdout = _run_dut_inner(input_data, xe_path, tmp_path, target **run_kwargs)
         return output_data, target_stdout
 
     with tempfile.TemporaryDirectory(dir=".", suffix=xe_path.stem) as auto_tmp:
         tmp_path = Path(auto_tmp)
-        output_data, target_stdout = _run_dut_inner(input_data, xe_path, tmp_path, **run_kwargs)
+        output_data, target_stdout = _run_dut_inner(input_data, xe_path, tmp_path, target, **run_kwargs)
 
     return output_data, target_stdout
 

@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.21)
 include($ENV{XMOS_CMAKE_PATH}/xcommon.cmake)
 project(app_aec)
 
-set(APP_HW_TARGET XK-EVK-XU316)
+if(DEFINED XCORE_TARGET)
+    set(APP_HW_TARGET ${XCORE_TARGET})
+else()
+    set(APP_HW_TARGET XK-EVK-XU316)
+endif()
 
 if(NOT BUILD_NATIVE)
     set(APP_COMPILER_FLAGS_1th -report -DAEC_THREADS=1)

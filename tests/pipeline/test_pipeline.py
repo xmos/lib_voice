@@ -12,7 +12,7 @@ if sys.platform != "darwin":
 import time, fcntl
 
 
-def test_pipelines(test, record_property):
+def test_pipelines(test, record_property, target_arch):
     wav_file = test[0] 
     wav_name = wav_file.name
     arch = test[1]
@@ -23,7 +23,7 @@ def test_pipelines(test, record_property):
     _, rate, samps, _ = get_wav_info(str(input_file))
     print(f"Processing a {samps//rate}s track")
     t0 = time.time()
-    output_file, stdo = process_file(input_file, arch, target)
+    output_file, stdo = process_file(input_file, arch, target, target_arch)
     tot = time.time() - t0
     print(f"Processing took {tot:.2f}s")
 

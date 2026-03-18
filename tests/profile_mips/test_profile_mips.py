@@ -86,7 +86,7 @@ MODULES = {
     },
 }
 
-def gen_input_and_run_dut(xe, module):
+def gen_input_and_run_dut(xe, module, target="xs3a"):
     """
     Generate input audio for a module and run the corresponding DUT xe.
 
@@ -126,8 +126,9 @@ def gen_input_and_run_dut(xe, module):
             input_data, config["frame_advance"]
         )
 
-    _, xcore_stdo = run_dut(input_data, xe)
+    _, xcore_stdo = run_dut(input_data, xe, target=target)
     return xcore_stdo
+
 
 def find_apps():
     """
@@ -161,7 +162,7 @@ APPS = find_apps()
     APPS,
     ids=[xe.stem for xe, _ in APPS]
 )
-def test_measure_mips(xe, module, pytestconfig):
+def test_measure_mips(xe, module, pytestconfig, target):
     """
     Profile a single app (xe) and validate MIPS usage.
 
@@ -193,7 +194,7 @@ def test_measure_mips(xe, module, pytestconfig):
     app = xe.stem # app name from executable
     print(f"app = {app}, module = {module}")
     log_file = Path(__file__).parent / f"{app}.log"
-    xcore_stdo = gen_input_and_run_dut(xe, module)
+    xcore_stdo = gen_input_and_run_dut(xe, module, target)
     with tempfile.TemporaryDirectory(dir=".", suffix=app) as tmp_folder:
         tmp = Path(tmp_folder)
         parse_profile_log(
@@ -210,10 +211,10 @@ def test_measure_mips(xe, module, pytestconfig):
     assert m, (f"MIPS log file {log_file} doesnt seem to be formatted correctly. "
                 f"file text = {text}")
     mips = float(m.group(1))
-    # Dump {app: mips} in a json file, to be collected in pytest_sessionfinish, if reference update is required
-    out_file = Path(__file__).parent / "worker_logs" / f"{app}_mips_worker.json"
+    # Dump {target: {app: mips}} in a json file, to be collected in pytest_sessionfinish, if reference update is required
+    out_file = Path(__file__).parent / "worker_logs" / f"{app}_{target}_mips_worker.json"
     out_file.parent.mkdir(parents=True, exist_ok=True)  # create missing dirs
-    out_file.write_text(json.dumps({app: mips}))
+    out_file.write_text(json.dumps({target: {app: mips}}))
 
     if not update:
         threshold = 0.1 # Allow upto 0.1 mips of variation
@@ -221,13 +222,14 @@ def test_measure_mips(xe, module, pytestconfig):
         ref_json = Path(__file__).parent / "lib_voice_mips.json"
         with ref_json.open("r") as f:
             ref_data = json.load(f)
-        assert app in ref_data, (f"ERROR: App {app} not in reference json. "
+        assert target in ref_data and app in ref_data.get(target, {}), (
+                                     f"ERROR: App {app} for arch {target} not in reference json. "
                                      "Run test with pytest test_profile_mips.py --update "
                                      "to regenerate the reference json and rst")
-        if abs(mips - ref_data[app]) > threshold:
+        if abs(mips - ref_data[target][app]) > threshold:
             fail_str = (
                         f"ERROR: App {app}, MIPS {mips} off by more than "
-                        f"{threshold} MIPS compared to the reference {ref_data[app]}.\n"
+                        f"{threshold} MIPS compared to the reference {ref_data[target][app]}.\n"
                         "If this is expected, run the test with 'pytest test_profile_mips.py' --update to update the reference json and rst files.\n"
                         )
             pytest.fail(fail_str)

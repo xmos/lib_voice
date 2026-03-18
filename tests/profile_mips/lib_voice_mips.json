@@ -1,11 +1,24 @@
 {
-  "app_mips_adec": 1.53,
-  "app_mips_aec_std_arch_2threads": 40.85,
-  "app_mips_aec_std_arch_1thread": 62.89,
-  "app_mips_vnr": 1.84,
-  "app_mips_aec_alt_arch_1thread": 42.57,
-  "app_mips_ic": 13.21,
-  "app_mips_ns": 20.79,
-  "app_mips_aec_alt_arch_2threads": 30.7,
-  "app_mips_agc": 21.31
+  "vx4b": {
+    "app_mips_adec": 1.17,
+    "app_mips_aec_alt_arch_1thread": 40.02,
+    "app_mips_aec_alt_arch_2threads": 29.11,
+    "app_mips_aec_std_arch_1thread": 62.64,
+    "app_mips_aec_std_arch_2threads": 41.89,
+    "app_mips_agc": 16.52,
+    "app_mips_ic": 12.42,
+    "app_mips_ns": 19.42,
+    "app_mips_vnr": 1.65
+  },
+  "xs3a": {
+    "app_mips_adec": 1.53,
+    "app_mips_aec_alt_arch_1thread": 42.57,
+    "app_mips_aec_alt_arch_2threads": 30.7,
+    "app_mips_aec_std_arch_1thread": 62.89,
+    "app_mips_aec_std_arch_2threads": 40.85,
+    "app_mips_agc": 21.31,
+    "app_mips_ic": 13.21,
+    "app_mips_ns": 20.79,
+    "app_mips_vnr": 1.84
+  }
 }

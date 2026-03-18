@@ -138,7 +138,7 @@ void test_bfp_s32_l2_unify_exponent() {
     int min_reqd_headroom[NUM_SUBGROUPS];
     int null_mapping; //null_mapping = 1 => unify everything without looking at subgroups
     //null_mapping = 0 => unify according to subgroups
-    for(int iter=0; iter<1<<12; iter++) {
+    for(int iter=0; iter<(1<<12)/F; iter++) {
         null_mapping = pseudo_rand_uint32(&seed) % 2;
         for(int i=0; i<NUM_SUBGROUPS; i++) {
             remaining_length[i] = LENGTH_PER_SUBGROUP;

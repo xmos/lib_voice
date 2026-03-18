@@ -82,8 +82,7 @@ TEST(ns_priv_subtract_lambda_from_frame, case0){
             lambda_fl.exp = EXP;
             lambda_db[v] = float_s32_to_double(lambda_fl);
 
-            lut_index = sqrt(lambda_db[v]) / LUT_INPUT_MULTIPLIER;
-            lut_index = abs_Y_db[v] / lut_index;
+            lut_index = (abs_Y_db[v] * LUT_INPUT_MULTIPLIER) / sqrt(lambda_db[v]);
 
             r_data_int = (lut_index > (LUT_SIZE - 1)) ? 0 : LUT_TEST[lut_index];
             r_data_fl.mant = r_data_int;

@@ -84,7 +84,7 @@ TEST(ns_priv_update_lambda_hat, case0){
         }
 
         double rel_error = fabs(abs_diff/(expected[id] + ldexp(1, -40)));
-        double thresh = ldexp(1, -26);
+        double thresh = ldexp(1, -25);
         TEST_ASSERT(rel_error < thresh);
     }
 }

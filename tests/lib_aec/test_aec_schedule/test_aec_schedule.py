@@ -7,7 +7,7 @@ import py_vs_c_utils as pvc
 from run_dut import run_dut
 import numpy as np
 
-def test_aec_schedule():
+def test_aec_schedule(target):
     one_thread_xe = Path(__file__).parent / "bin" / "aec_std_arch_1thread" / "test_aec_schedule_aec_std_arch_1thread.xe"
     two_thread_xe = Path(__file__).parent / "bin" / "aec_std_arch_2threads" / "test_aec_schedule_aec_std_arch_2threads.xe"
 
@@ -24,8 +24,8 @@ def test_aec_schedule():
     assert input_data.shape[0] == 4
     input_data = pvc.interleave_channel_frames(input_data, 240)
 
-    out1, _ = run_dut(input_data, one_thread_xe)
-    out2, _ = run_dut(input_data, two_thread_xe)
+    out1, _ = run_dut(input_data, one_thread_xe, target)
+    out2, _ = run_dut(input_data, two_thread_xe, target)
     assert isinstance(out1, np.ndarray) and isinstance(out2, np.ndarray)
     assert out1.shape == out2.shape, "Output shapes differ"
     assert np.array_equal(out1, out2), "Outputs differ between 1-thread and 2-thread schedules"
