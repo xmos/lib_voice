@@ -5,8 +5,8 @@
 
 #include "pipeline_state.h"
 
-void pipeline_tile0_init(pipeline_state_tile0_t *state) {
-    memset(state, 0, sizeof(pipeline_state_tile0_t));
+void pipeline_thread0_init(pipeline_state_thread0_t *state) {
+    memset(state, 0, sizeof(pipeline_state_thread0_t));
 
     // Initialise AEC, DE, ADEC stages
     aec_conf_t aec_de_mode_conf, aec_non_de_mode_conf;
@@ -44,8 +44,8 @@ void pipeline_tile0_init(pipeline_state_tile0_t *state) {
     stage1_init(&state->stage_1_state, &aec_de_mode_conf, &aec_non_de_mode_conf, &adec_conf);
 }
 
-void pipeline_tile1_init(pipeline_state_tile1_t *state) {
-    memset(state, 0, sizeof(pipeline_state_tile1_t));
+void pipeline_thread1_init(pipeline_state_thread1_t *state) {
+    memset(state, 0, sizeof(pipeline_state_thread1_t));
 
     // Initialise IC, VNR
     ic_init(&state->ic_state);
@@ -58,7 +58,7 @@ void pipeline_tile1_init(pipeline_state_tile1_t *state) {
     agc_init(&state->agc_state, &agc_conf_asr);
 }
 
-void pipeline_process_frame_tile0(pipeline_state_tile0_t *state,
+void pipeline_process_frame_thread0(pipeline_state_thread0_t *state,
         int32_t (*input_y_data)[AP_FRAME_ADVANCE],
         int32_t (*input_x_data)[AP_FRAME_ADVANCE],
         int32_t (*output_data)[AP_FRAME_ADVANCE],
@@ -79,7 +79,7 @@ void pipeline_process_frame_tile0(pipeline_state_tile0_t *state,
     memcpy(md_output, &md, sizeof(pipeline_metadata_t));
 }
 
-void pipeline_process_frame_tile1(pipeline_state_tile1_t *state, pipeline_metadata_t *md_input,
+void pipeline_process_frame_thread1(pipeline_state_thread1_t *state, pipeline_metadata_t *md_input,
         int32_t (*input_data)[AP_FRAME_ADVANCE],
         int32_t output_data[AP_FRAME_ADVANCE])
 {

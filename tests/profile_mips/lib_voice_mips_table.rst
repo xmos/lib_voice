@@ -17,7 +17,7 @@
    * - AEC_STD_ARCH_2THREADS
      - 40.85
    * - AGC
-     - 21.31
+     - 20.46
    * - IC
      - 13.21
    * - NS

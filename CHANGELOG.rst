@@ -1,6 +1,11 @@
 lib_voice change log
 ====================
 
+UNRELEASED
+----------
+
+  * CHANGED: `app_pipeline` example is now single-tile 
+
 1.0.1
 -----
 

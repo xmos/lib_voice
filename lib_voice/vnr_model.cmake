@@ -25,6 +25,7 @@ else()
     if(NOT TARGET tflite_micro)
         set(TFLM_LIB_NAME tflite_micro)
         add_library(${TFLM_LIB_NAME} STATIC IMPORTED GLOBAL)
+        target_compile_options(${TFLM_LIB_NAME} INTERFACE -Os)
         target_compile_definitions(${TFLM_LIB_NAME} INTERFACE ${XMOS_AITOOLSLIB_DEFINITIONS})
         set_target_properties(${TFLM_LIB_NAME}  PROPERTIES
             LINKER_LANGUAGE CXX
@@ -38,12 +39,20 @@ set(MODEL_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/src.autogen/vnr_model/)
 set(MODEL_IN_PATH ${CMAKE_CURRENT_LIST_DIR}/src/vnr/model/trained_model.tflite)
 set(MODEL_OUT_PATH ${MODEL_OUT_DIR}/trained_model_xcore.tflite)
 set(MODEL_N_CORES 1)
-set(MODEL_TH 0.50)
+
+if (APP_BUILD_ARCH STREQUAL "vx4b")
+    set(MODEL_TH 2)
+    set(ARCH_STR "VX4A")
+else()
+    # xs3a and native
+    set(MODEL_TH 0.50)
+    set(ARCH_STR "XS3A")
+endif()
 
 file(MAKE_DIRECTORY ${MODEL_OUT_DIR})
 
 add_custom_command(
     OUTPUT ${MODEL_OUT_PATH}.cpp ${MODEL_OUT_PATH}.h ${MODEL_OUT_PATH}
-    COMMAND xcore-opt ${MODEL_IN_PATH} -tc ${MODEL_N_CORES} -o ${MODEL_OUT_PATH} --xcore-conv-err-threshold ${MODEL_TH} --xcore-naming-prefix vnr_model_
+    COMMAND xcore-opt ${MODEL_IN_PATH} -tc ${MODEL_N_CORES} -o ${MODEL_OUT_PATH} --xcore-conv-err-threshold ${MODEL_TH} --xcore-naming-prefix vnr_model_ --xcore-target-arch=${ARCH_STR}
     DEPENDS ${MODEL_IN_PATH}
 )

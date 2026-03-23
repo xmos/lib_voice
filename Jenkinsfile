@@ -19,6 +19,11 @@ pipeline {
       description: 'The XTC tools version'
     )
     string(
+      name: 'TOOLS_VX4_VERSION',
+      defaultValue: '-j --repo arch_vx_slipgate -b master -a XTC 112',
+      description: 'The XTC Slipgate tools version'
+    )
+    string(
       name: 'XMOSDOC_VERSION',
       defaultValue: 'v8.0.1',
       description: 'The xmosdoc version'
@@ -66,7 +71,8 @@ pipeline {
                 }
                 dir("${REPO}/examples") {
                   withVenv {
-                    xcoreBuild()
+                    xcoreBuild(archiveBins: false, buildDir: "build_xs3a", toolsVersion: params.TOOLS_VERSION)
+                    xcoreBuild(archiveBins: false, buildDir: "build_vx4b", toolsVersion: params.TOOLS_VX4_VERSION, cmakeOpts: "-DXCORE_TARGET=XK-EVK-XU416")
                   }
                 }
               }
