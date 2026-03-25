@@ -44,6 +44,6 @@ file(MAKE_DIRECTORY ${MODEL_OUT_DIR})
 
 add_custom_command(
     OUTPUT ${MODEL_OUT_PATH}.cpp ${MODEL_OUT_PATH}.h ${MODEL_OUT_PATH}
-    COMMAND xcore-opt ${MODEL_IN_PATH} -tc ${MODEL_N_CORES} -o ${MODEL_OUT_PATH} --xcore-conv-err-threshold ${MODEL_TH}
+    COMMAND xcore-opt ${MODEL_IN_PATH} -tc ${MODEL_N_CORES} -o ${MODEL_OUT_PATH} --xcore-conv-err-threshold ${MODEL_TH} --xcore-naming-prefix vnr_model_
     DEPENDS ${MODEL_IN_PATH}
 )
