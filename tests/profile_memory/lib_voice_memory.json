@@ -1,33 +1,28 @@
 {
+  "app_memory_agc": {
+    "total": 13288,
+    "stack": 4068,
+    "program": 9220
+  },
+  "app_memory_ns": {
+    "total": 39344,
+    "stack": 18068,
+    "program": 21276
+  },
   "app_memory_empty": {
     "total": 4232,
     "stack": 348,
     "program": 3884
   },
-  "app_memory_ns": {
-    "total": 39896,
-    "stack": 18068,
-    "program": 21828
-  },
   "app_memory_aec_std_arch": {
-    "total": 282056,
+    "total": 282032,
     "stack": 228924,
-    "program": 53132
-  },
-  "app_memory_agc": {
-    "total": 14128,
-    "stack": 4108,
-    "program": 10020
+    "program": 53108
   },
   "app_memory_adec": {
-    "total": 13072,
+    "total": 13064,
     "stack": 2508,
-    "program": 10564
-  },
-  "app_memory_ic": {
-    "total": 140576,
-    "stack": 67100,
-    "program": 73476
+    "program": 10556
   },
   "app_memory_vnr": {
     "total": 67168,
@@ -35,8 +30,13 @@
     "program": 58036
   },
   "app_memory_aec_alt_arch": {
-    "total": 244632,
+    "total": 244624,
     "stack": 191612,
-    "program": 53020
+    "program": 53012
+  },
+  "app_memory_ic": {
+    "total": 140560,
+    "stack": 67100,
+    "program": 73460
   }
 }
