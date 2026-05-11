@@ -1,6 +1,6 @@
 set(LIB_NAME lib_voice)
 set(LIB_VERSION 1.0.1)
-set(LIB_DEPENDENT_MODULES "lib_xcore_math(develop)")
+set(LIB_DEPENDENT_MODULES "lib_xcore_math(fast_div)")
 
 set(LIB_COMPILER_FLAGS
             -g
