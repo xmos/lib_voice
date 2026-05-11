@@ -54,21 +54,31 @@ static int32_t use_exp_float(float_s32_t fl, exponent_t exp)
 static int32_t apply_soft_clipping(int32_t mant, exponent_t exp)
 {
     float_s32_t sample = {mant, exp};
+    sample.mant = use_exp_float(sample, FRAME_EXP);
+    sample.exp = FRAME_EXP;
     float_s32_t sample_abs = float_s32_abs(sample);
 
-    if (float_s32_gt(AGC_SOFT_CLIPPING_THRESH, sample_abs)) {
-        return mant;
+    // if (float_s32_gt(AGC_SOFT_CLIPPING_THRESH, sample_abs)) {
+    if (AGC_SOFT_CLIPPING_THRESH.mant > sample_abs.mant) {
+        // return use_exp_float(sample, FRAME_EXP);
+        return sample.mant;
     }
 
     // Division by zero is not possible after the absolute value test against AGC_LC_LIMIT_POINT
-    float_s32_t sample_limit = float_s32_div(AGC_SOFT_CLIPPING_NUMERATOR, sample_abs);
+    int64_t num = ((int64_t)AGC_SOFT_CLIPPING_NUMERATOR.mant << 31);
+    float_s32_t sample_limit;
+    sample_limit.mant = s32_divide_s64_s32(num, sample_abs.mant);
+    sample_limit.exp = FRAME_EXP;
+    // float_s32_t sample_limit = float_s32_div(AGC_SOFT_CLIPPING_NUMERATOR, sample_abs);
     sample_limit = float_s32_sub(FLOAT_S32_ONE, sample_limit);
 
-    if (float_s32_gt(FLOAT_S32_ZERO, sample)) {
-        sample_limit = float_s32_sub(FLOAT_S32_ZERO, sample_limit);
+    // if (float_s32_gt(FLOAT_S32_ZERO, sample)) {
+    if (0 >  sample.mant) {
+        // sample_limit = float_s32_sub(FLOAT_S32_ZERO, sample_limit);
+        sample_limit.mant = - sample_limit.mant;
     }
 
-    return use_exp_float(sample_limit, exp);
+    return use_exp_float(sample_limit, FRAME_EXP);
 }
 
 void agc_process_frame(agc_state_t *agc,
@@ -278,7 +288,9 @@ void agc_process_frame(agc_state_t *agc,
         for (unsigned idx = 0; idx < AGC_FRAME_ADVANCE; ++idx) {
             output[idx] = apply_soft_clipping(output[idx], output_bfp.exp);
         }
+        output_bfp.exp = FRAME_EXP;
     }
-
-    bfp_s32_use_exponent(&output_bfp, FRAME_EXP);
+    else {
+        bfp_s32_use_exponent(&output_bfp, FRAME_EXP);
+    }
 }

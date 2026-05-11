@@ -205,7 +205,8 @@ void ns_priv_rescale_vector_old(bfp_complex_s32_t * Y, bfp_s32_t * new_mag, bfp_
 void ns_priv_rescale(complex_s32_t * Y, int32_t new_mag, int32_t orig_mag){
     if(orig_mag){
         int64_t S = ((int64_t)new_mag)<<31;
-        S /= orig_mag;
+        // S /= orig_mag;
+        S = s32_divide_s64_s32(S, orig_mag);
         // shift to be sure that S is 32 bit wide, and has a bit of headroom
         // tests have shown that sometimes S can be more then 32 bit wide
         // so taking the lower 32 bits of S will lead to the wrong answer
