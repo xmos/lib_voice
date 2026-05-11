@@ -50,32 +50,29 @@ static int32_t use_exp_float(float_s32_t fl, exponent_t exp)
     return fl.mant;
 }
 
-// Returns the soft-clipped mantissa in terms of the original exponent
+// Returns the soft-clipped mantissa at FRAME_EXP
 static int32_t apply_soft_clipping(int32_t mant, exponent_t exp)
 {
     float_s32_t sample = {mant, exp};
-    sample.mant = use_exp_float(sample, FRAME_EXP);
-    sample.exp = FRAME_EXP;
     float_s32_t sample_abs = float_s32_abs(sample);
 
-    // if (float_s32_gt(AGC_SOFT_CLIPPING_THRESH, sample_abs)) {
-    if (AGC_SOFT_CLIPPING_THRESH.mant > sample_abs.mant) {
-        // return use_exp_float(sample, FRAME_EXP);
-        return sample.mant;
+    if (float_s32_gt(AGC_SOFT_CLIPPING_THRESH, sample_abs)) {
+        return use_exp_float(sample, FRAME_EXP);
     }
 
-    // Division by zero is not possible after the absolute value test against AGC_LC_LIMIT_POINT
-    int64_t num = ((int64_t)AGC_SOFT_CLIPPING_NUMERATOR.mant << 31);
+    // Division by zero is not possible after the absolute value test against AGC_SOFT_CLIPPING_THRESH
+    // Compute NUMERATOR / sample_abs at FRAME_EXP. With NUMERATOR.exp = -32 and
+    // sample_abs.exp = exp, the required left shift for integer Q-format division is:
+    //   shift = NUMERATOR.exp - exp - FRAME_EXP = -32 - exp + 31 = -1 - exp
+    int64_t num = ((int64_t)AGC_SOFT_CLIPPING_NUMERATOR.mant << (-1 - exp));
     float_s32_t sample_limit;
     sample_limit.mant = s32_divide_s64_s32(num, sample_abs.mant);
     sample_limit.exp = FRAME_EXP;
     // float_s32_t sample_limit = float_s32_div(AGC_SOFT_CLIPPING_NUMERATOR, sample_abs);
     sample_limit = float_s32_sub(FLOAT_S32_ONE, sample_limit);
 
-    // if (float_s32_gt(FLOAT_S32_ZERO, sample)) {
-    if (0 >  sample.mant) {
-        // sample_limit = float_s32_sub(FLOAT_S32_ZERO, sample_limit);
-        sample_limit.mant = - sample_limit.mant;
+    if (0 > mant) {
+        sample_limit.mant = -sample_limit.mant;
     }
 
     return use_exp_float(sample_limit, FRAME_EXP);

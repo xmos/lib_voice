@@ -1,8 +1,8 @@
 {
   "app_memory_agc": {
-    "total": 13288,
-    "stack": 4068,
-    "program": 9220
+    "total": 13352,
+    "stack": 4076,
+    "program": 9276
   },
   "app_memory_ns": {
     "total": 39344,
