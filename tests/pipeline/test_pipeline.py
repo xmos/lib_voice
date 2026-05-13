@@ -65,4 +65,4 @@ def test_pipelines(test, record_property):
                         print(f"Quick test failed for file {wav_name}, architecture {arch}, target {target}. Expected {pass_mark} keywords, got {sensory_old_detections}", file=sys.stderr)
                         passed = False
             assert passed
-    return True
+
