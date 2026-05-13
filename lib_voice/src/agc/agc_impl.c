@@ -61,14 +61,6 @@ static int32_t apply_soft_clipping(int32_t mant, exponent_t exp)
     }
 
     // Division by zero is not possible after the absolute value test against AGC_SOFT_CLIPPING_THRESH
-    // Compute NUMERATOR / sample_abs at FRAME_EXP. With NUMERATOR.exp = -32 and
-    // sample_abs.exp = exp, the required left shift for integer Q-format division is:
-    //   shift = NUMERATOR.exp - exp - FRAME_EXP = -32 - exp + 31 = -1 - exp
-    // int64_t num = ((int64_t)AGC_SOFT_CLIPPING_NUMERATOR.mant << (-1 - exp));
-    // float_s32_t sample_limit;
-    // sample_limit.mant = s32_divide_s64_s32(num, sample_abs.mant);
-    // sample_limit.exp = FRAME_EXP;
-
     float_s32_t sample_limit = float_s32_div(AGC_SOFT_CLIPPING_NUMERATOR, sample_abs);
     sample_limit = float_s32_sub(FLOAT_S32_ONE, sample_limit);
 
