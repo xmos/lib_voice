@@ -50,14 +50,14 @@ static int32_t use_exp_float(float_s32_t fl, exponent_t exp)
     return fl.mant;
 }
 
-// Returns the soft-clipped mantissa at FRAME_EXP
+// Returns the soft-clipped mantissa in terms of the original exponent
 static int32_t apply_soft_clipping(int32_t mant, exponent_t exp)
 {
     float_s32_t sample = {mant, exp};
     float_s32_t sample_abs = float_s32_abs(sample);
 
     if (float_s32_gt(AGC_SOFT_CLIPPING_THRESH, sample_abs)) {
-        return use_exp_float(sample, FRAME_EXP);
+        return mant;
     }
 
     // Division by zero is not possible after the absolute value test against AGC_SOFT_CLIPPING_THRESH
@@ -68,7 +68,7 @@ static int32_t apply_soft_clipping(int32_t mant, exponent_t exp)
         sample_limit.mant = -sample_limit.mant;
     }
 
-    return use_exp_float(sample_limit, FRAME_EXP);
+    return use_exp_float(sample_limit, exp);
 }
 
 void agc_process_frame(agc_state_t *agc,
@@ -278,9 +278,7 @@ void agc_process_frame(agc_state_t *agc,
         for (unsigned idx = 0; idx < AGC_FRAME_ADVANCE; ++idx) {
             output[idx] = apply_soft_clipping(output[idx], output_bfp.exp);
         }
-        output_bfp.exp = FRAME_EXP;
     }
-    else {
-        bfp_s32_use_exponent(&output_bfp, FRAME_EXP);
-    }
+
+    bfp_s32_use_exponent(&output_bfp, FRAME_EXP);
 }
