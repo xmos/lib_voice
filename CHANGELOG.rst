@@ -4,7 +4,9 @@ lib_voice change log
 UNRELEASED
 ----------
 
-  * CHANGED: `app_pipeline` example is now single-tile 
+  * ADDED: Experimental vx4b support
+  * CHANGED: `app_pipeline` example is now single-tile
+  * CHANGED: Updated xmos_ai_tools version to 1.4.3.dev39 
 
 1.0.1
 -----
@@ -127,4 +129,3 @@ UNRELEASED
 -----
 
   * Initial version with support for AEC and AGC libraries.
-
