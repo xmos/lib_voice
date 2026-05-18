@@ -246,49 +246,10 @@ void ic_filter_adapt(ic_state_t *state){
     aec_priv_filter_adapt(state->H_hat_bfp[y_ch], state->X_fifo_1d_bfp, T_ptr, IC_X_CHANNELS, IC_FILTER_PHASES);
 }
 
-// Arithmetic shift for a signed int32_t
-static inline int32_t ashr32(int32_t x, right_shift_t shr)
-{
-  if(shr >= 0)
-    return x >> shr;
-
-  int64_t tmp = ((int64_t)x) << -shr;
-
-  if(tmp > INT32_MAX)       return INT32_MAX;
-  else if(tmp < INT32_MIN)  return INT32_MIN;
-  else                      return tmp;
-}
-
-// Temporary implementation of float_s32_add which handles 32 bit shifts
-float_s32_t float_s32_add_fix(
-    const float_s32_t x,
-    const float_s32_t y)
-{
-  float_s32_t res;
-
-  const headroom_t x_hr = HR_S32(x.mant);
-  const headroom_t y_hr = HR_S32(y.mant);
-
-  const exponent_t x_min_exp = x.exp - x_hr;
-  const exponent_t y_min_exp = y.exp - y_hr;
-
-  res.exp = MAX(x_min_exp, y_min_exp) + 1;
-
-  const right_shift_t x_shr = res.exp - x.exp;
-  const right_shift_t y_shr = res.exp - y.exp;
-
-  int32_t x_mant = (x_shr >= 32) ? 0 : ashr32(x.mant, x_shr);
-  int32_t y_mant = (y_shr >= 32) ? 0 : ashr32(y.mant, y_shr);
-
-  res.mant = x_mant + y_mant;
-
-  return res;
-}
-
 // Calculates fast ratio
 void ic_calc_fast_ratio(ic_adaption_controller_state_t * ad_state){
     const float_s32_t delta = {7037, -46}; // ~ 0.0000000001 from Python model
-    float_s32_t denom = float_s32_add_fix(ad_state->input_energy, delta);
+    float_s32_t denom = float_s32_add(ad_state->input_energy, delta);
     ad_state->fast_ratio = float_s32_div(ad_state->output_energy, denom);
 }
 

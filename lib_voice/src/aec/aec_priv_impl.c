@@ -865,30 +865,6 @@ void aec_priv_calc_inverse(
     bfp_s32_inverse(input, input);
 }
 
-
-void bfp_new_add_scalar(
-    bfp_s32_t* a,
-    const bfp_s32_t* b,
-    const float_s32_t c)
-{
-#if (BFP_DEBUG_CHECK_LENGTHS)
-    assert(b->length == a->length);
-    assert(b->length != 0);
-#endif
-
-    right_shift_t b_shr, c_shr;
-
-    vect_s32_add_scalar_prepare(&a->exp, &b_shr, &c_shr, b->exp, c.exp,
-                                    b->hr, HR_S32(c.mant));
-
-    int32_t cc = 0;
-    if (c_shr < 32)
-        cc = (c_shr >= 0)? (c.mant >> c_shr) : (c.mant << -c_shr);
-
-    a->hr = vect_s32_add_scalar(a->data, b->data, cc, b->length,
-                                    b_shr);
-}
-
 void aec_priv_calc_inv_X_energy_denom(
         bfp_s32_t *inv_X_energy_denom,
         const bfp_s32_t *X_energy,
@@ -923,8 +899,7 @@ void aec_priv_calc_inv_X_energy_denom(
 
         bfp_s32_convolve_same(inv_X_energy_denom, &norm_denom, (const int32_t *) &taps_q30[0], 5, PAD_MODE_REFLECT);
 
-        //bfp_s32_add_scalar(inv_X_energy_denom, inv_X_energy_denom, delta);
-        bfp_new_add_scalar(inv_X_energy_denom, inv_X_energy_denom, delta);
+        bfp_s32_add_scalar(inv_X_energy_denom, inv_X_energy_denom, delta);
 
     }
     else

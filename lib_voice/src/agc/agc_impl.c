@@ -39,15 +39,9 @@ agc_meta_data_t agc_meta_data_init()
 // Returns the mantissa for the input float shifted to an exponent of parameter exp
 static int32_t use_exp_float(float_s32_t fl, exponent_t exp)
 {
-    exponent_t exp_diff = fl.exp - exp;
+    exponent_t shr = exp - fl.exp;
 
-    if (exp_diff > 0) {
-        return fl.mant << exp_diff;
-    } else if (exp_diff < 0) {
-        return fl.mant >> -exp_diff;
-    }
-
-    return fl.mant;
+    return s32_ashr(fl.mant, shr);
 }
 
 // Returns the soft-clipped mantissa in terms of the original exponent
