@@ -121,10 +121,10 @@ void test_loss_control() {
 
         }
 
-        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_float(conf_near.lc_gain_max), float_s32_to_float(agc_near.lc_gain));
-        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_float(conf_far.lc_gain_min), float_s32_to_float(agc_far.lc_gain));
-        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_float(conf_double_talk.lc_gain_double_talk), float_s32_to_float(agc_double_talk.lc_gain));
-        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_float(conf_silence.lc_gain_silence), float_s32_to_float(agc_silence.lc_gain));
+        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_f32(conf_near.lc_gain_max), float_s32_to_f32(agc_near.lc_gain));
+        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_f32(conf_far.lc_gain_min), float_s32_to_f32(agc_far.lc_gain));
+        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_f32(conf_double_talk.lc_gain_double_talk), float_s32_to_f32(agc_double_talk.lc_gain));
+        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_f32(conf_silence.lc_gain_silence), float_s32_to_f32(agc_silence.lc_gain));
 
         bfp_s32_headroom(&output_near_bfp);
         float_s32_t output_near_energy = float_s64_to_float_s32(bfp_s32_energy(&output_near_bfp));

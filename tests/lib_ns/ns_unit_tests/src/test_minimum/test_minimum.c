@@ -47,12 +47,12 @@ TEST(ns_priv_minimum, case0){
             S_int[v] = pseudo_rand_int(&seed, 0, INT_MAX);
             S_fl.mant = S_int[v];
             S_fl.exp = EXP;
-            S_db[v] = float_s32_to_double(S_fl);
+            S_db[v] = float_s32_to_f64(S_fl);
 
             S_tmp_int[v] = pseudo_rand_int(&seed, 0, INT_MAX);
             S_tmp_fl.mant = S_tmp_int[v];
             S_tmp_fl.exp = EXP + 2;
-            S_tmp_db[v] = float_s32_to_double(S_tmp_fl);
+            S_tmp_db[v] = float_s32_to_f64(S_tmp_fl);
 
             if (S_tmp_db[v] < S_db[v]){expected[v] = S_tmp_db[v];}
             else{expected[v] = S_db[v];}
@@ -74,7 +74,7 @@ TEST(ns_priv_minimum, case0){
             float_s32_t act_fl;
             act_fl.mant = S_min_bfp.data[v];
             act_fl.exp = S_min_bfp.exp;
-            actual[v] = float_s32_to_double(act_fl);
+            actual[v] = float_s32_to_f64(act_fl);
 
             double t = fabs(expected[v] - actual[v]);
 

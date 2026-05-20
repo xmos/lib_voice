@@ -43,7 +43,7 @@ int main()
     // Get input data, run VNR, convert its output to float
     producer(input);
     vnr_process_frame(&vnr, &vnr_out, input);
-    float res = float_s32_to_float(vnr_out);
+    float res = float_s32_to_f32(vnr_out);
     consumer(res);
   }
   printf("\n");

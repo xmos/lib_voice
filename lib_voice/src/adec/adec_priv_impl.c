@@ -229,11 +229,7 @@ q8_24 calculate_aec_goodness_metric(adec_state_t *state, q8_24 log2erle_q24, flo
   }
 
   //Convert to 8.24 format
-  bfp_s32_t temp; //Till we get support for float_s32_use_exponent, convert to a BFP array of length 1 and call bfp_s32_use_exponent
-  bfp_s32_init(&temp, &peak_power_slope.mant, peak_power_slope.exp, 1, 1);
-  bfp_s32_use_exponent(&temp, -Q24_FRAC_BITS);
-  peak_power_slope.exp = temp.exp;
-  q8_24 peak_slope_q24 = peak_power_slope.mant; //now in 8.24 format
+  q8_24 peak_slope_q24 = float_s32_to_s32(peak_power_slope, -Q24_FRAC_BITS); //now in 8.24 format
   peak_slope_q24 = multiply_q24_no_saturation(peak_slope_q24, state->peak_phase_energy_trend_gain_q24);
 
   q8_24 new_agm_q24 = (agm_q24 + erle_agm_delta_q24 + peak_slope_q24);

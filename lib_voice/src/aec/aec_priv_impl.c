@@ -277,7 +277,6 @@ void aec_priv_compare_filters(
 
     for(unsigned ch=0; ch<main_state->shared_state->num_y_channels; ch++) {
         main_state->shared_state->overall_Y[ch].exp -= 1; //Y_data is 512 samples, Errors are 272 (inc window), approx half the size
-        //printf("Ov_Error_shad = %f, Ov_Error = %f, Ov_input = %f\n", float_s32_to_double(shadow_state->overall_Error[ch]), float_s32_to_double(main_state->overall_Error[ch]), float_s32_to_double(shared_state->overall_Y[ch]));
         float_s32_t shadow_copy_thresh_x_Ov_Error = float_s32_mul(shadow_conf->shadow_copy_thresh, main_state->overall_Error[ch]);
         float_s32_t shadow_sigma_thresh_x_Ov_Error = float_s32_mul(shadow_conf->shadow_sigma_thresh, main_state->overall_Error[ch]);
         float_s32_t shadow_reset_thresh_x_Ov_Error = float_s32_mul(shadow_conf->shadow_reset_thresh, main_state->overall_Error[ch]);
@@ -567,12 +566,6 @@ void aec_priv_calc_coherence_mu(
             }
         }
     }
-    /*for(unsigned y_ch=0; y_ch<num_y_channels; y_ch++) {
-      for(unsigned x_ch=0; x_ch<num_x_channels; x_ch++) {
-        printf("mu[%d][%d] = %f\n",y_ch, x_ch, float_s32_to_double(coh_mu_state[y_ch].coh_mu[x_ch]));
-
-      }
-    }*/
 }
 
 void aec_priv_bfp_complex_s32_recalc_energy_one_bin(

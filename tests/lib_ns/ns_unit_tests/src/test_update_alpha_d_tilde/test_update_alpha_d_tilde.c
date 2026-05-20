@@ -50,7 +50,7 @@ TEST(ns_priv_update_alpha_d_tilde, case0){
             p_int[v] = pseudo_rand_int(&seed, 0xffffffff, 0x7fffffff);
             p_fl.mant = p_int[v];
             p_fl.exp = EXP;
-            p_db = float_s32_to_double(p_fl);
+            p_db = float_s32_to_f64(p_fl);
 
             expected[v] =  alpha_d + ((1.0 - alpha_d) * p_db);
         }
@@ -67,7 +67,7 @@ TEST(ns_priv_update_alpha_d_tilde, case0){
             float_s32_t act_fl;
             act_fl.mant = state.alpha_d_tilde.data[v];
             act_fl.exp = state.alpha_d_tilde.exp;
-            actual = float_s32_to_double(act_fl);
+            actual = float_s32_to_f64(act_fl);
 
             double t = fabs(expected[v] - actual);
 

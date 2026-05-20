@@ -52,7 +52,7 @@ TEST(ns_priv_form_output, case0){
             overlap_int[v] = pseudo_rand_int(&seed, 0, INT_MAX)/2;
             overlap_fl.mant = overlap_int[v];
             overlap_fl.exp = EXP;
-            ex_overlap[v] = float_s32_to_double(overlap_fl);
+            ex_overlap[v] = float_s32_to_f64(overlap_fl);
         }
         bfp_s32_headroom(&overlap);
 
@@ -62,7 +62,7 @@ TEST(ns_priv_form_output, case0){
                 frame_int[v] = pseudo_rand_int(&seed, INT_MIN, INT_MAX)/2;
                 frame_fl.mant = frame_int[v];
                 frame_fl.exp = EXP;
-                frame_db[v] = float_s32_to_double(frame_fl);
+                frame_db[v] = float_s32_to_f64(frame_fl);
             }
             bfp_s32_headroom(&frame);
 
@@ -83,7 +83,7 @@ TEST(ns_priv_form_output, case0){
             float_s32_t act_fl;
             act_fl.mant = output[v];
             act_fl.exp = EXP;
-            act_output = float_s32_to_double(act_fl);
+            act_output = float_s32_to_f64(act_fl);
 
             double t = fabs(ex_output[v] - act_output);
 
@@ -104,7 +104,7 @@ TEST(ns_priv_form_output, case0){
             float_s32_t act_fl;
             act_fl.mant = overlap.data[v];
             act_fl.exp = EXP;
-            act_overlap = float_s32_to_double(act_fl);
+            act_overlap = float_s32_to_f64(act_fl);
 
             double t = fabs(ex_overlap[v] - act_overlap);
 

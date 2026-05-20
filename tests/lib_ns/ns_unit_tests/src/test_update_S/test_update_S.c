@@ -51,7 +51,7 @@ TEST(ns_priv_update_S, case0){
             abs_Y_int[v] = pseudo_rand_int(&seed, 0x70000000, 0x7fffffff);
             abs_Y_fl.mant = abs_Y_int[v];
             abs_Y_fl.exp = EXP;
-            abs_Y_db = float_s32_to_double(abs_Y_fl);
+            abs_Y_db = float_s32_to_f64(abs_Y_fl);
             expected[v] = 1.0;
 
             expected[v] = (expected[v] * alpha_s) + ((1.0 - alpha_s) * (abs_Y_db * abs_Y_db));
@@ -69,7 +69,7 @@ TEST(ns_priv_update_S, case0){
             float_s32_t act_fl;
             act_fl.mant = state.S.data[v];
             act_fl.exp = state.S.exp;
-            actual = float_s32_to_double(act_fl);
+            actual = float_s32_to_f64(act_fl);
 
             double t = fabs(expected[v] - actual);
 

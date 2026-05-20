@@ -179,11 +179,11 @@ void pipeline_wrapper(const char *input_file_name, const char* output_file_name)
 
 #if LOG_DEBUG_INFO
         char buf[100];
-        sprintf(buf, "%f\n", float_s32_to_float(pipeline_state.aec_state.main_state.overall_Error[0]));
+        sprintf(buf, "%f\n", float_s32_to_f32(pipeline_state.aec_state.main_state.overall_Error[0]));
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
-        sprintf(buf, "%f\n", float_s32_to_float(pipeline_state.aec_state.shadow_state.overall_Error[0]));
+        sprintf(buf, "%f\n", float_s32_to_f32(pipeline_state.aec_state.shadow_state.overall_Error[0]));
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
-        sprintf(buf, "%f\n", float_s32_to_float(pipeline_state.aec_state.main_state.shared_state->overall_Y[0]));
+        sprintf(buf, "%f\n", float_s32_to_f32(pipeline_state.aec_state.main_state.shared_state->overall_Y[0]));
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
         sprintf(buf, "%d\n", pipeline_state.aec_state.main_state.shared_state->shadow_filter_params.shadow_flag[0]);
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
@@ -191,9 +191,9 @@ void pipeline_wrapper(const char *input_file_name, const char* output_file_name)
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
         sprintf(buf, "%d\n", pipeline_state.aec_state.main_state.shared_state->shadow_filter_params.shadow_better_count[0]);
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
-        sprintf(buf, "%f\n", float_s32_to_float(pipeline_state.aec_state.main_state.error_ema_energy[0]));
+        sprintf(buf, "%f\n", float_s32_to_f32(pipeline_state.aec_state.main_state.error_ema_energy[0]));
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
-        sprintf(buf, "%f\n", float_s32_to_float(pipeline_state.aec_state.main_state.shared_state->y_ema_energy[0]));
+        sprintf(buf, "%f\n", float_s32_to_f32(pipeline_state.aec_state.main_state.shared_state->y_ema_energy[0]));
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
 #endif
 

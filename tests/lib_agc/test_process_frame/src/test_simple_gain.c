@@ -48,7 +48,7 @@ void test_simple_gain() {
         bfp_s32_headroom(&output_bfp);
         float_s32_t output_energy = float_s64_to_float_s32(bfp_s32_energy(&output_bfp));
 
-        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_float(expected_output_energy), float_s32_to_float(output_energy));
+        TEST_ASSERT_EQUAL_FLOAT(float_s32_to_f32(expected_output_energy), float_s32_to_f32(output_energy));
 
         for (unsigned idx = 0; idx < AGC_FRAME_ADVANCE; ++idx) {
             if (input[idx] > 0) {

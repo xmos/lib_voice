@@ -92,7 +92,6 @@ void adec_process_frame(
   else {
       erle_ratio = f64_to_float_s32(1.0);
   }
-  //printf("erle_ratio = %f\n",float_s32_to_float(erle_ratio));
   q8_24 log2erle_q24 = float_to_frac_bits(erle_ratio);
 
   switch(state->mode){

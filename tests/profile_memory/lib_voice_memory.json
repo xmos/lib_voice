@@ -1,42 +1,42 @@
 {
-  "app_memory_adec": {
-    "total": 12576,
-    "stack": 2508,
-    "program": 10068
-  },
-  "app_memory_aec_alt_arch": {
-    "total": 244144,
-    "stack": 191612,
-    "program": 52532
-  },
-  "app_memory_aec_std_arch": {
-    "total": 281568,
-    "stack": 228924,
-    "program": 52644
-  },
   "app_memory_agc": {
-    "total": 13528,
-    "stack": 4084,
-    "program": 9444
-  },
-  "app_memory_empty": {
-    "total": 4232,
-    "stack": 348,
-    "program": 3884
-  },
-  "app_memory_ic": {
-    "total": 140608,
-    "stack": 67100,
-    "program": 73508
+    "total": 13704,
+    "stack": 4100,
+    "program": 9604
   },
   "app_memory_ns": {
     "total": 39424,
     "stack": 18068,
     "program": 21356
   },
+  "app_memory_empty": {
+    "total": 4232,
+    "stack": 348,
+    "program": 3884
+  },
+  "app_memory_aec_std_arch": {
+    "total": 282040,
+    "stack": 228932,
+    "program": 53108
+  },
+  "app_memory_adec": {
+    "total": 12392,
+    "stack": 2500,
+    "program": 9892
+  },
   "app_memory_vnr": {
-    "total": 67168,
+    "total": 67008,
     "stack": 9132,
-    "program": 58036
+    "program": 57876
+  },
+  "app_memory_aec_alt_arch": {
+    "total": 244632,
+    "stack": 191620,
+    "program": 53012
+  },
+  "app_memory_ic": {
+    "total": 140432,
+    "stack": 67100,
+    "program": 73332
   }
 }

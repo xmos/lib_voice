@@ -16,18 +16,6 @@ int detect_input_activity_fp(double (*input)[AEC_FRAME_ADVANCE], double active_t
     return 0;
 }
 
-float_s32_t float_s32_use_exponent(float_s32_t a, int exp) {
-    float_s32_t out;
-    out.mant = a.mant;
-    out.exp = a.exp;
-
-    bfp_s32_t out_bfp;
-    bfp_s32_init(&out_bfp, &out.mant, out.exp, 1, 0);
-
-    bfp_s32_use_exponent(&out_bfp, exp);
-    return out;
-}
-
 #define CHANNELS (4)
 void test_detect_input_activity() {
     int32_t DWORD_ALIGNED dut[CHANNELS][AEC_FRAME_ADVANCE];
@@ -90,7 +78,7 @@ void test_detect_input_activity() {
     //make one value above threshold.
     int m = (pseudo_rand_int32(&seed) & 0x7fffffff) % CHANNELS;
     int n = (pseudo_rand_int32(&seed) & 0x7fffffff) % AEC_FRAME_ADVANCE;
-    dut[m][n] = (float_s32_use_exponent(dut_active_threshold, -31)).mant + 0x10; //Set to something slightly higher than threshold
+    dut[m][n] = float_s32_to_s32(dut_active_threshold, -31) + 0x10; //Set to something slightly higher than threshold
     ref[m][n] = ldexp(dut[m][n], -31);
     ref_active = detect_input_activity_fp(ref, ref_active_threshold, CHANNELS);
     dut_active = aec_detect_input_activity(dut, dut_active_threshold, CHANNELS);
@@ -114,7 +102,7 @@ void test_detect_input_activity() {
     //make one value above threshold
     m = (pseudo_rand_int32(&seed) & 0x7fffffff) % CHANNELS;
     n = (pseudo_rand_int32(&seed) & 0x7fffffff) % AEC_FRAME_ADVANCE;
-    dut[m][n] = -(float_s32_use_exponent(dut_active_threshold, -31)).mant - 0x10; //Set to something slightly smaller than -threshold
+    dut[m][n] = -float_s32_to_s32(dut_active_threshold, -31) - 0x10; //Set to something slightly smaller than -threshold
     ref[m][n] = ldexp(dut[m][n], -31);
     ref_active = detect_input_activity_fp(ref, ref_active_threshold, CHANNELS);
     dut_active = aec_detect_input_activity(dut, dut_active_threshold, CHANNELS);

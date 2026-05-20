@@ -62,21 +62,21 @@ TEST(ns_priv_rescale_vector, case0){
                 abs_ns_int[v] = pseudo_rand_int(&seed, 0, INT_MAX);
             t.mant = abs_orig_int[v];
             t.exp = EXP;
-            orig = float_s32_to_double(t);
+            orig = float_s32_to_f64(t);
             t.mant = abs_ns_int[v];
             t.exp = EXP;
-            new = float_s32_to_double(t);
+            new = float_s32_to_f64(t);
             abs_ratio = new / orig;
 
             Y_int[v].re = pseudo_rand_int(&seed, INT_MIN, INT_MAX)>>1;
             t.mant = Y_int[v].re;
             t.exp = EXP;
-            expected[2 * v] = float_s32_to_double(t) * abs_ratio;
+            expected[2 * v] = float_s32_to_f64(t) * abs_ratio;
 
             Y_int[v].im = pseudo_rand_int(&seed, INT_MIN, INT_MAX)>>1;
             t.mant = Y_int[v].im;
             t.exp = EXP;
-            expected[(2 * v) + 1] = float_s32_to_double(t) * abs_ratio;
+            expected[(2 * v) + 1] = float_s32_to_f64(t) * abs_ratio;
         }
 
         bfp_s32_t abs_orig, abs_ns;

@@ -7,16 +7,16 @@
    * - Component
      - Memory use (bytes)
    * - ADEC
-     - 8344
+     - 8160
    * - AEC_ALT_ARCH
-     - 239912
+     - 240400
    * - AEC_STD_ARCH
-     - 277336
+     - 277808
    * - AGC
-     - 9296
+     - 9472
    * - IC
-     - 136376
+     - 136200
    * - NS
      - 35192
    * - VNR
-     - 62936
+     - 62776

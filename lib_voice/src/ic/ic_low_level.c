@@ -355,7 +355,7 @@ void ic_apply_leakage(
     }
 
     // Skip leakage if leakage_alpha is 1.0 (no leakage)
-    if(float_s32_to_float(state->leakage_alpha) == 1.0f) {
+    if(float_s32_to_f32(state->leakage_alpha) == 1.0f) {
         return;
     }
 

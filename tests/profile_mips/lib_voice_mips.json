@@ -1,11 +1,11 @@
 {
-  "app_mips_adec": 1.37,
-  "app_mips_aec_alt_arch_1thread": 42.44,
+  "app_mips_adec": 1.38,
+  "app_mips_aec_alt_arch_1thread": 42.42,
   "app_mips_aec_alt_arch_2threads": 30.57,
-  "app_mips_aec_std_arch_1thread": 62.75,
-  "app_mips_aec_std_arch_2threads": 40.76,
-  "app_mips_agc": 5.77,
-  "app_mips_ic": 13.13,
-  "app_mips_ns": 6.2,
-  "app_mips_vnr": 1.83
+  "app_mips_aec_std_arch_1thread": 62.7,
+  "app_mips_aec_std_arch_2threads": 40.74,
+  "app_mips_agc": 6.19,
+  "app_mips_ic": 13.05,
+  "app_mips_ns": 6.15,
+  "app_mips_vnr": 1.76
 }

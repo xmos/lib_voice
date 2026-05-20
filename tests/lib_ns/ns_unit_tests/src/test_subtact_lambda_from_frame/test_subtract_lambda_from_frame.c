@@ -75,12 +75,12 @@ TEST(ns_priv_subtract_lambda_from_frame, case0){
             abs_Y_int[v] = pseudo_rand_int(&seed, 0x10000000, 0x7fffffff);
             abs_Y_fl.mant = abs_Y_int[v];
             abs_Y_fl.exp = EXP;
-            abs_Y_db[v] = float_s32_to_double(abs_Y_fl);
+            abs_Y_db[v] = float_s32_to_f64(abs_Y_fl);
 
             lambda_int[v] = pseudo_rand_int(&seed, 0x10000000, 0x7fffffff);
             lambda_fl.mant = lambda_int[v];
             lambda_fl.exp = EXP;
-            lambda_db[v] = float_s32_to_double(lambda_fl);
+            lambda_db[v] = float_s32_to_f64(lambda_fl);
 
             lut_index = sqrt(lambda_db[v]) / LUT_INPUT_MULTIPLIER;
             lut_index = abs_Y_db[v] / lut_index;
@@ -88,7 +88,7 @@ TEST(ns_priv_subtract_lambda_from_frame, case0){
             r_data_int = (lut_index > (LUT_SIZE - 1)) ? 0 : LUT_TEST[lut_index];
             r_data_fl.mant = r_data_int;
             r_data_fl.exp = EXP;
-            r_data_db = float_s32_to_double(r_data_fl);
+            r_data_db = float_s32_to_f64(r_data_fl);
 
             expected[v] = (sqrt(lambda_db[v]) > abs_Y_db[v]) ? abs_Y_db[v] : sqrt(lambda_db[v]);
             expected[v] *= r_data_db;
@@ -110,7 +110,7 @@ TEST(ns_priv_subtract_lambda_from_frame, case0){
             float_s32_t act_fl;
             act_fl.mant = abs_Y_bfp.data[v];
             act_fl.exp = abs_Y_bfp.exp;
-            actual = float_s32_to_double(act_fl);
+            actual = float_s32_to_f64(act_fl);
 
             double t = fabs(expected[v] - actual);
 

@@ -2,7 +2,7 @@
 // This Software is subject to the terms of the XMOS Public Licence: Version 1.
 #include <stdio.h>
 #include "vnr_features_api.h"
-#include "vnr_inference_api.h" 
+#include "vnr_inference_api.h"
 
 vnr_input_state_t vnr_input_state;
 vnr_feature_state_t vnr_feature_state;
@@ -37,6 +37,6 @@ double test_vnr_inference(
 {
     float_s32_t ie_output;
     vnr_inference(&ie_output, features);
-    double result = float_s32_to_double(ie_output);
+    double result = float_s32_to_f64(ie_output);
     return result;
 }

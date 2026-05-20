@@ -36,14 +36,6 @@ agc_meta_data_t agc_meta_data_init()
     return md;
 }
 
-// Returns the mantissa for the input float shifted to an exponent of parameter exp
-static int32_t use_exp_float(float_s32_t fl, exponent_t exp)
-{
-    exponent_t shr = exp - fl.exp;
-
-    return s32_ashr(fl.mant, shr);
-}
-
 // Returns the soft-clipped mantissa in terms of the original exponent
 static int32_t apply_soft_clipping(int32_t mant, exponent_t exp)
 {
@@ -62,7 +54,7 @@ static int32_t apply_soft_clipping(int32_t mant, exponent_t exp)
         sample_limit.mant = -sample_limit.mant;
     }
 
-    return use_exp_float(sample_limit, exp);
+    return float_s32_to_s32(sample_limit, exp);
 }
 
 void agc_process_frame(agc_state_t *agc,
@@ -253,13 +245,13 @@ void agc_process_frame(agc_state_t *agc,
                 if (float_s32_gt(lc_target_gain, agc->lc_gain)) {
                     agc->lc_gain = lc_target_gain;
                 }
-                lc_scale[idx] = use_exp_float(agc->lc_gain, lc_scale_bfp.exp);
+                lc_scale[idx] = float_s32_to_s32(agc->lc_gain, lc_scale_bfp.exp);
             } else if (float_s32_gt(lc_target_gain, agc->lc_gain)) {
                 agc->lc_gain = float_s32_mul(agc->lc_gain, agc->config.lc_gamma_inc);
                 if (float_s32_gt(agc->lc_gain, lc_target_gain)) {
                     agc->lc_gain = lc_target_gain;
                 }
-                lc_scale[idx] = use_exp_float(agc->lc_gain, lc_scale_bfp.exp);
+                lc_scale[idx] = float_s32_to_s32(agc->lc_gain, lc_scale_bfp.exp);
             } else {
                 break;
             }

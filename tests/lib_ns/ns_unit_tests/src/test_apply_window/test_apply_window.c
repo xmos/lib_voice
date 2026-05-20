@@ -88,17 +88,17 @@ TEST(ns_priv_apply_window, case0){
             frame_int[v] = pseudo_rand_int(&seed, INT_MIN, INT_MAX);
             frame_fl.mant = frame_int[v];
             frame_fl.exp = EXP;
-            expected[v] = float_s32_to_double(frame_fl);
+            expected[v] = float_s32_to_f64(frame_fl);
         }
 
         for(int v = 0; v < (NS_WINDOW_LENGTH / 2); v++){
             t.mant = half_hanning[v];
             t.exp = EXP;
-            expected[v] *= float_s32_to_double(t);
+            expected[v] *= float_s32_to_f64(t);
 
             t.mant = second_half[v];
             t.exp = EXP;
-            expected[v + (NS_WINDOW_LENGTH / 2)] *= float_s32_to_double(t);
+            expected[v + (NS_WINDOW_LENGTH / 2)] *= float_s32_to_f64(t);
         }
 
         for(int v = 0; v < (NS_PROC_FRAME_LENGTH - NS_WINDOW_LENGTH); v++){
@@ -116,7 +116,7 @@ TEST(ns_priv_apply_window, case0){
             float_s32_t act_fl;
             act_fl.mant = tmp.data[v];
             act_fl.exp = tmp.exp;
-            actual = float_s32_to_double(act_fl);
+            actual = float_s32_to_f64(act_fl);
 
             double t = fabs(expected[v] - actual);
 
