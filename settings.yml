@@ -1,11 +1,12 @@
 # This file relates to internal XMOS infrastructure and should be ignored by external users
 
 lib_name: lib_voice
-project: '{{lib_name}}'
-title: '{{lib_name}}: Voice processing library'
+project: "{{lib_name}}"
+title: "{{lib_name}}: Voice processing library"
 version: 1.0.1
 
 documentation:
+  linkcheck_ignore_regex: ["xmos.com/.*"]
   root_doc: doc/rst/lib_voice.rst
   exclude_patterns_path: doc/exclude_patterns.inc
   cognidox_part_number: XM-010445-UG
@@ -19,8 +20,8 @@ documentation:
       pdf_title: "{{title}}"
       pdf_filename: "{{lib_name}}_v{{version}}"
     README.rst:
-      pdf_title: '{{title}} (README)'
-      pdf_filename: '{{lib_name}}_v{{version}}_readme'
+      pdf_title: "{{title}} (README)"
+      pdf_filename: "{{lib_name}}_v{{version}}_readme"
       pdf_short: yes
 software:
   cognidox_part_number: XM-010449-SM
