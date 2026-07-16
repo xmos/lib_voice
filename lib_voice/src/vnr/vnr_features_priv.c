@@ -28,8 +28,6 @@ void vnr_priv_forward_fft(bfp_complex_s32_t *X, int32_t *x_data) {
         assert(0);
     }
 #endif
-    //printf("post fft hr = reported %d, actual %d\n",temp->hr, bfp_complex_s32_headroom(temp));
-    temp->hr = bfp_complex_s32_headroom(temp); // TODO Workaround till https://github.com/xmos/lib_xcore_math/issues/96 is fixed
     bfp_fft_unpack_mono(temp);
     *X = *temp;
 }
@@ -138,7 +136,8 @@ void vnr_priv_mel_compute(float_s32_t *filter_output, const bfp_complex_s32_t *X
         unsigned filter_length = mel_filter_512_24_compact_start_bins[(2*(i+1)) + 1] - filter_start;
         // Create input spectrum subset BFP structure
         bfp_s32_t spect_subset;
-        bfp_s32_init(&spect_subset, &squared_mag.data[filter_start], squared_mag.exp, filter_length, 1);
+        bfp_s32_init(&spect_subset, &squared_mag.data[filter_start], squared_mag.exp, filter_length, 0);
+        spect_subset.hr = squared_mag.hr; // Reuse parent headroom; a subset's hr >= the full vector's, so this is a safe (conservative) bound and avoids a per-filter headroom scan
 
         // Create MEL filter BFP structure
         bfp_s32_t filter_subset;
@@ -169,14 +168,16 @@ static const int lookup[33] = {
 // Lookup table entries k=0,1,...,32:
 //lookup[k] = 256log2(1 + k/32)
 static int lookup_small_log2_linear_new(uint32_t x) {
-    int mask_bits = 26;
-    int mask = (1 << mask_bits) - 1;
+    const int mask_bits = 26;
+    uint32_t mask = (1u << mask_bits) - 1;
     int y = (x >> mask_bits) - 32;
-    int y1 = y + 1;
-    int v0 = lookup[y], v1 = lookup[y1];
-    int f1 = x & mask;
-    int f0 = mask + 1 - f1;
-    return (v0 * (uint64_t) f0 + v1 * (uint64_t) f1) >> (mask_bits - (MEL_PRECISION - LOOKUP_PRECISION));
+    int v0 = lookup[y], v1 = lookup[y + 1];
+    uint32_t f1 = x & mask;
+    // Since f0 + f1 == (mask + 1) == (1 << mask_bits):
+    //   v0*f0 + v1*f1 == (v0 << mask_bits) + (v1 - v0)*f1
+    // which needs only a single multiply instead of two.
+    int64_t acc = ((int64_t)v0 << mask_bits) + (int64_t)(v1 - v0) * (int64_t)f1;
+    return acc >> (mask_bits - (MEL_PRECISION - LOOKUP_PRECISION));
 }
 
 uq8_24 vnr_priv_float_s32_to_fixed_q24_log2(float_s32_t x) {

@@ -8,7 +8,7 @@
     "app_mips_agc": 3.61,
     "app_mips_ic": 11.52,
     "app_mips_ns": 5.18,
-    "app_mips_vnr": 1.4
+    "app_mips_vnr": 1.40
   },
   "xs3a": {
     "app_mips_adec": 1.38,
@@ -19,6 +19,6 @@
     "app_mips_agc": 6.19,
     "app_mips_ic": 12.84,
     "app_mips_ns": 6.15,
-    "app_mips_vnr": 1.76
+    "app_mips_vnr": 1.64
   }
 }

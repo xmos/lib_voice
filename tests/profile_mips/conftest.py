@@ -44,6 +44,8 @@ def write_rst_table(configs: dict, outfile: Path):
         lines.append(f"   * - {app_name}")
         for arch in archs:
             mips = configs[arch].get(app, "N/A")
+            if isinstance(mips, (int, float)):
+                mips = f"{mips:.2f}"
             lines.append(f"     - {mips}")
     outfile.write_text("\n".join(lines))
 
