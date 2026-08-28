@@ -34,8 +34,8 @@ void init_pk_ave_ratio_history(adec_state_t *adec_state){
 }
 
 void reset_stuff_on_AEC_mode_start(adec_state_t *adec_state, unsigned set_toggle){
-  adec_state->agm_q24 = ADEC_AGM_HALF;
-
+  // Always reset trend tracking, peak history and the "time in mode" counter.
+  // py_voice resets these BOTH on a shadow event and on a delay change.
   init_pk_ave_ratio_history(adec_state);
 
   memset(adec_state->peak_power_history, 0, ADEC_PEAK_LINREG_HISTORY_SIZE * sizeof(adec_state->peak_power_history[0]));
@@ -43,12 +43,17 @@ void reset_stuff_on_AEC_mode_start(adec_state_t *adec_state, unsigned set_toggle
   adec_state->peak_power_history_valid = 0;
 
   adec_state->max_peak_to_average_ratio_since_reset = f64_to_float_s32(1.0);
+  adec_state->gated_milliseconds_since_mode_change = 0;
 
+  // Only on a real delay change / mode transition (set_toggle=1), NOT on a shadow event,
+  // do we reset the goodness metric and the copy/shadow bookkeeping. py_voice deliberately
+  // keeps goodness (and peak_p2a, convergence_counter, had_erle_reset) accumulating through
+  // shadow events so that genuine delay problems are still detected.
   if (set_toggle) {
-    adec_state->gated_milliseconds_since_mode_change = 0;
+    adec_state->agm_q24 = ADEC_AGM_HALF;
     adec_state->sf_copy_flag = 0;
     adec_state->shadow_flag_counter = 0;
-    adec_state->convergence_counter = 0;
+    adec_state->peak_p2a_in_aec_period = f64_to_float_s32(0.0);
   }
 }
 
@@ -210,11 +215,11 @@ static inline q8_24 multiply_q24_no_saturation(q8_24 a_q24, q8_24 b_q24){
 //This function modifies the agm (AEC Goodness Metric) according to state of ERLE and the peak power slope
 q8_24 calculate_aec_goodness_metric(adec_state_t *state, q8_24 log2erle_q24, float_s32_t peak_power_slope, q8_24 agm_q24){
 
-  //All good if ERLE is high
-  if (log2erle_q24 >= state->erle_good_bits_q24){
-    // debug_printf("*AGM ERLE ALL GOOD\n");
+  //All good if ERLE is high — but only reset if not in immediate post-shadow period
+  if (log2erle_q24 >= state->erle_good_bits_q24 && state->convergence_counter >= ADEC_ERLE_RESET_CC_GUARD){
     state->convergence_counter = 0;
     state->shadow_flag_counter = 0;
+    state->had_erle_reset = 1;
     return ADEC_AGM_ONE;
   }
 
@@ -234,11 +239,10 @@ q8_24 calculate_aec_goodness_metric(adec_state_t *state, q8_24 log2erle_q24, flo
 
   q8_24 new_agm_q24 = (agm_q24 + erle_agm_delta_q24 + peak_slope_q24);
 
-  //Clip positive - negative will be captured by mode change logic
+  //Clip positive - negative will be captured by mode change logic.
+  //py_voice just caps at max here; it does NOT reset the shadow/convergence counters.
   if (new_agm_q24 > ADEC_AGM_ONE){
     new_agm_q24 = ADEC_AGM_ONE;
-    state->convergence_counter = 0;
-    state->shadow_flag_counter = 0;
   }
   return new_agm_q24;
 }

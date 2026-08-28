@@ -284,12 +284,87 @@ void aec_calc_normalisation_spectrum(
     if(state == NULL) {
         return;
     }
-    //frequency smoothing
-    //calc inverse energy
-    bfp_s32_t *sigma_XX_ptr = &state->shared_state->sigma_XX[ch];
-    bfp_s32_t *X_energy_ptr = &state->X_energy[ch];
-    unsigned normdenom_apply_factor_of_2 = 0;
-    aec_priv_calc_inv_X_energy(&state->inv_X_energy[ch], X_energy_ptr, sigma_XX_ptr, &state->shared_state->config_params, state->delta, is_shadow, normdenom_apply_factor_of_2);
+
+    if(is_shadow) {
+        // Shadow filter: sum X_energy across x-channels, no sigma_XX, no smoothing
+        // Compute once for ch==0, result is shared across all x-channels
+        if(ch != 0) {
+            return;
+        }
+        unsigned num_x_channels = state->shared_state->num_x_channels;
+
+        if(num_x_channels == 1) {
+            aec_priv_calc_inv_X_energy(&state->inv_X_energy[0], &state->X_energy[0], NULL, &state->shared_state->config_params, state->delta, 1);
+        } else {
+            // Sum X_energy across x-channels
+            int32_t DWORD_ALIGNED sum_X_energy_buf[AEC_PROC_FRAME_LENGTH/2 + 1];
+            bfp_s32_t sum_X_energy;
+            bfp_s32_init(&sum_X_energy, sum_X_energy_buf, state->X_energy[0].exp, AEC_FD_FRAME_LENGTH, 0);
+            memcpy(sum_X_energy.data, state->X_energy[0].data, AEC_FD_FRAME_LENGTH * sizeof(int32_t));
+            sum_X_energy.hr = state->X_energy[0].hr;
+            for(unsigned xch = 1; xch < num_x_channels; xch++) {
+                bfp_s32_add(&sum_X_energy, &sum_X_energy, &state->X_energy[xch]);
+            }
+
+            aec_priv_calc_inv_X_energy(&state->inv_X_energy[0], &sum_X_energy, NULL, &state->shared_state->config_params, state->delta, 1);
+
+            // Copy result to remaining x-channels
+            for(unsigned xch = 1; xch < num_x_channels; xch++) {
+                memcpy(state->inv_X_energy[xch].data, state->inv_X_energy[0].data, AEC_FD_FRAME_LENGTH * sizeof(int32_t));
+                state->inv_X_energy[xch].exp = state->inv_X_energy[0].exp;
+                state->inv_X_energy[xch].hr = state->inv_X_energy[0].hr;
+                state->inv_X_energy[xch].length = state->inv_X_energy[0].length;
+            }
+        }
+    } else {
+        // Main filter: cross-channel normalization
+        // normDenom = avg(sigma_XX across x-channels) * gamma + sum(X_energy across x-channels)
+        // Compute once for ch==0, result is shared across all x-channels
+        if(ch != 0) {
+            return; // Already computed for all channels when ch==0
+        }
+        unsigned num_x_channels = state->shared_state->num_x_channels;
+
+        if(num_x_channels == 1) {
+            // Single channel: no cross-channel sum/average needed
+            aec_priv_calc_inv_X_energy(&state->inv_X_energy[0], &state->X_energy[0], &state->shared_state->sigma_XX[0], &state->shared_state->config_params, state->delta, 0);
+        } else {
+            // Sum X_energy across x-channels
+            int32_t DWORD_ALIGNED sum_X_energy_buf[AEC_PROC_FRAME_LENGTH/2 + 1];
+            bfp_s32_t sum_X_energy;
+            bfp_s32_init(&sum_X_energy, sum_X_energy_buf, state->X_energy[0].exp, AEC_FD_FRAME_LENGTH, 0);
+            memcpy(sum_X_energy.data, state->X_energy[0].data, AEC_FD_FRAME_LENGTH * sizeof(int32_t));
+            sum_X_energy.hr = state->X_energy[0].hr;
+            for(unsigned xch = 1; xch < num_x_channels; xch++) {
+                bfp_s32_add(&sum_X_energy, &sum_X_energy, &state->X_energy[xch]);
+            }
+
+            // Average sigma_XX across x-channels
+            int32_t DWORD_ALIGNED avg_sigma_buf[AEC_PROC_FRAME_LENGTH/2 + 1];
+            bfp_s32_t avg_sigma_XX;
+            bfp_s32_init(&avg_sigma_XX, avg_sigma_buf, state->shared_state->sigma_XX[0].exp, AEC_FD_FRAME_LENGTH, 0);
+            memcpy(avg_sigma_XX.data, state->shared_state->sigma_XX[0].data, AEC_FD_FRAME_LENGTH * sizeof(int32_t));
+            avg_sigma_XX.hr = state->shared_state->sigma_XX[0].hr;
+            for(unsigned xch = 1; xch < num_x_channels; xch++) {
+                bfp_s32_add(&avg_sigma_XX, &avg_sigma_XX, &state->shared_state->sigma_XX[xch]);
+            }
+            // Divide by num_x_channels: for 2 channels, subtract 1 from exponent
+            if(num_x_channels == 2) {
+                avg_sigma_XX.exp -= 1;
+            }
+
+            // Compute combined inv_X_energy into channel 0
+            aec_priv_calc_inv_X_energy(&state->inv_X_energy[0], &sum_X_energy, &avg_sigma_XX, &state->shared_state->config_params, state->delta, 0);
+
+            // Copy result to remaining x-channels (all share the same normalisation)
+            for(unsigned xch = 1; xch < num_x_channels; xch++) {
+                memcpy(state->inv_X_energy[xch].data, state->inv_X_energy[0].data, AEC_FD_FRAME_LENGTH * sizeof(int32_t));
+                state->inv_X_energy[xch].exp = state->inv_X_energy[0].exp;
+                state->inv_X_energy[xch].hr = state->inv_X_energy[0].hr;
+                state->inv_X_energy[xch].length = state->inv_X_energy[0].length;
+            }
+        }
+    }
 }
 
 void aec_filter_adapt(
