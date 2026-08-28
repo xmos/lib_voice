@@ -112,7 +112,6 @@ void test_update_total_X_energy() {
 
     double max_diff_percentage_shadow = 0.0;
     double max_diff_percentage = 0.0;
-    int max_diff = 0;
     unsigned seed = 2;
     for(unsigned iter=0; iter<(1<<12)/F; iter++) {
         for(unsigned ch=0; ch<num_x_channels; ch++) {

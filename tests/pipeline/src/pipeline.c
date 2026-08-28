@@ -22,7 +22,7 @@
 
 /// pipeline_stage_1
 // Stage 1 state
-stage1_t DWORD_ALIGNED stage_1_state = {0};
+stage1_t DWORD_ALIGNED stage_1_state = {{0}};
 void pipeline_stage_1(chanend_t c_frame_in, chanend_t c_frame_out) {
     // Pipeline metadata
     pipeline_metadata_t md;

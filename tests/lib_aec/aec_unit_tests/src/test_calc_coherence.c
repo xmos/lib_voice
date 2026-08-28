@@ -159,5 +159,5 @@ void test_calc_coherence() {
         }
 
     }
-    printf("max_diff = %ld\n",max_diff);
+    printf("max_diff = %d\n",max_diff);
 }

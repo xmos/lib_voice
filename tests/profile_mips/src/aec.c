@@ -4,6 +4,7 @@
 #include "voice.h"
 #include "profile.h"
 
+#if AEC
 extern aec_task_distribution_t tdist;
 void test_aec(int32_t (*input)[AEC_FRAME_ADVANCE], int32_t (*output)[AEC_FRAME_ADVANCE])
 {
@@ -23,3 +24,4 @@ void test_aec(int32_t (*input)[AEC_FRAME_ADVANCE], int32_t (*output)[AEC_FRAME_A
     print_prof(0, 2, framenum);
     framenum += 1;
 }
+#endif
