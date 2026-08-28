@@ -66,7 +66,7 @@ target_link_libraries(lib_voice_module_lib_vnr
     PRIVATE
 	    lib_voice_compile_options
 )
-target_compile_definitions(lib_voice_module_lib_vnr PRIVATE HEADROOM_CHECK=0)
+target_compile_definitions(lib_voice_module_lib_vnr PRIVATE HEADROOM_CHECK=1)
 target_compile_options(lib_voice_module_lib_vnr
     PRIVATE
         -Os

@@ -28,8 +28,6 @@ void vnr_priv_forward_fft(bfp_complex_s32_t *X, int32_t *x_data) {
         assert(0);
     }
 #endif
-    //printf("post fft hr = reported %d, actual %d\n",temp->hr, bfp_complex_s32_headroom(temp));
-    temp->hr = bfp_complex_s32_headroom(temp); // TODO Workaround till https://github.com/xmos/lib_xcore_math/issues/96 is fixed
     bfp_fft_unpack_mono(temp);
     memcpy(X, temp, sizeof(bfp_complex_s32_t));
 }
@@ -111,6 +109,7 @@ void vnr_priv_mel_compute(float_s32_t *filter_output, const bfp_complex_s32_t *X
         // Create input spectrum subset BFP structure
         bfp_s32_t spect_subset;
         bfp_s32_init(&spect_subset, (int32_t *) &squared_mag.data[filter_start], squared_mag.exp, filter_length, 1);
+        // spect_subset.hr = squared_mag.hr; // Reuse parent headroom; a subset's hr >= the full vector's, so this is a safe (conservative) bound and avoids a per-filter headroom scan
 
         // Create MEL filter BFP structure
         bfp_s32_t filter_subset;
@@ -121,16 +120,20 @@ void vnr_priv_mel_compute(float_s32_t *filter_output, const bfp_complex_s32_t *X
         filter_output[2*i] = float_s64_to_float_s32(bfp_s32_dot(&spect_subset, &filter_subset));
     }
 
-    bfp_s32_t filter;
-    bfp_s32_init(&filter, (int32_t *) &mel_filter_512_24_compact_q31[0], filter_exp, AUDIO_FEATURES_NUM_BINS, 0);
-    
-    // Generate odd band filters
-    int32_t odd_band_filters_data[AUDIO_FEATURES_NUM_BINS]; // Memory for storing odd filters
-    bfp_s32_t odd_band_filters;
-    bfp_s32_init(&odd_band_filters, odd_band_filters_data, 0, AUDIO_FEATURES_NUM_BINS, 0);
-    bfp_s32_set(&odd_band_filters, AUDIO_FEATURES_MEL_MAX, filter_exp);
-    odd_band_filters.hr = HR_S32(AUDIO_FEATURES_MEL_MAX);
-    bfp_s32_sub(&odd_band_filters, &odd_band_filters, &filter);
+    // Generate odd band filters. These depend only on the constant mel filter
+    // table, so compute them once and cache for subsequent frames.
+    static int32_t odd_band_filters_data[AUDIO_FEATURES_NUM_BINS]; // Memory for storing odd filters
+    static bfp_s32_t odd_band_filters;
+    static int odd_band_filters_init_done = 0;
+    if(!odd_band_filters_init_done) {
+        bfp_s32_t filter;
+        bfp_s32_init(&filter, (int32_t *) &mel_filter_512_24_compact_q31[0], filter_exp, AUDIO_FEATURES_NUM_BINS, 0);
+        bfp_s32_init(&odd_band_filters, odd_band_filters_data, 0, AUDIO_FEATURES_NUM_BINS, 0);
+        bfp_s32_set(&odd_band_filters, AUDIO_FEATURES_MEL_MAX, filter_exp);
+        odd_band_filters.hr = HR_S32(AUDIO_FEATURES_MEL_MAX);
+        bfp_s32_sub(&odd_band_filters, &odd_band_filters, &filter);
+        odd_band_filters_init_done = 1;
+    }
 
     // Filter through odd filters
     for(unsigned i=0; i<num_odd_filters; i++) {
@@ -138,7 +141,8 @@ void vnr_priv_mel_compute(float_s32_t *filter_output, const bfp_complex_s32_t *X
         unsigned filter_length = mel_filter_512_24_compact_start_bins[(2*(i+1)) + 1] - filter_start;
         // Create input spectrum subset BFP structure
         bfp_s32_t spect_subset;
-        bfp_s32_init(&spect_subset, &squared_mag.data[filter_start], squared_mag.exp, filter_length, 1);
+        bfp_s32_init(&spect_subset, &squared_mag.data[filter_start], squared_mag.exp, filter_length, 0);
+        spect_subset.hr = squared_mag.hr; // Reuse parent headroom; a subset's hr >= the full vector's, so this is a safe (conservative) bound and avoids a per-filter headroom scan
 
         // Create MEL filter BFP structure
         bfp_s32_t filter_subset;
@@ -170,13 +174,15 @@ static const int lookup[33] = {
 //lookup[k] = 256log2(1 + k/32)
 static int lookup_small_log2_linear_new(uint32_t x) {
     int mask_bits = 26;
-    int mask = (1 << mask_bits) - 1;
+    uint32_t mask = (1u << mask_bits) - 1;
     int y = (x >> mask_bits) - 32;
-    int y1 = y + 1;
-    int v0 = lookup[y], v1 = lookup[y1];
-    int f1 = x & mask;
-    int f0 = mask + 1 - f1;
-    return (v0 * (uint64_t) f0 + v1 * (uint64_t) f1) >> (mask_bits - (MEL_PRECISION - LOOKUP_PRECISION));
+    int v0 = lookup[y], v1 = lookup[y + 1];
+    uint32_t f1 = x & mask;
+    // Since f0 + f1 == (mask + 1) == (1 << mask_bits):
+    //   v0*f0 + v1*f1 == (v0 << mask_bits) + (v1 - v0)*f1
+    // which needs only a single multiply instead of two.
+    int64_t acc = ((int64_t)v0 << mask_bits) + (int64_t)(v1 - v0) * (int64_t)f1;
+    return acc >> (mask_bits - (MEL_PRECISION - LOOKUP_PRECISION));
 }
 
 uq8_24 vnr_priv_float_s32_to_fixed_q24_log2(float_s32_t x) {
