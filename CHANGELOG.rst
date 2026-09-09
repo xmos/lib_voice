@@ -16,6 +16,8 @@ lib_voice change log
 1.0.1
 -----
 
+  * ADDED: ``STAGE1_DISABLE_ADEC`` build option to `lib_stage1` to compile out ADEC and
+    apply a fixed delay instead.
   * CHANGED: Corrected project name in CMakeLists.txt
   * CHANGED: Added prefix to VNR model name
 
