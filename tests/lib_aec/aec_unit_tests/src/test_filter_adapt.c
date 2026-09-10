@@ -13,8 +13,10 @@
 
 static double sine_lut_ifft[AEC_PROC_FRAME_LENGTH / 4 + 1];
 static double sine_lut[AEC_PROC_FRAME_LENGTH / 4 + 1];
+//The adaptive filter is stored in the time domain. delta_h = ifft(T * conj(X)) and the first AEC_FRAME_ADVANCE
+//time-domain samples are added to the filter (the gradient constraint keeps only these samples).
 void aec_filter_adapt_fp(
-        complex_double_t *H_hat,
+        double *h_hat,
         complex_double_t *X_fifo,
         complex_double_t *T,
         int bypass) {
@@ -24,38 +26,23 @@ void aec_filter_adapt_fp(
     complex_double_t scratch[AEC_PROC_FRAME_LENGTH];
     int N = AEC_PROC_FRAME_LENGTH;
 
+    //T * conj(X) for bins DC..Nyquist
     for(int i=0; i<N/2+1; i++) {
-        complex_double_t T_mult_conj_X;
-        T_mult_conj_X.re = (T[i].re*X_fifo[i].re + T[i].im*X_fifo[i].im);
-        T_mult_conj_X.im = (T[i].im*X_fifo[i].re - T[i].re*X_fifo[i].im);
-        H_hat[i].re = H_hat[i].re + T_mult_conj_X.re;
-        H_hat[i].im = H_hat[i].im + T_mult_conj_X.im;
+        scratch[i].re = (T[i].re*X_fifo[i].re + T[i].im*X_fifo[i].im);
+        scratch[i].im = (T[i].im*X_fifo[i].re - T[i].re*X_fifo[i].im);
     }
     //Generate 2nd half of the spectrum based on symmetry
-    for(int i=0; i<N/2; i++) {
-        scratch[i].re = H_hat[i].re;
-        scratch[i].im = H_hat[i].im;
-
-        if(i) {
-            scratch[N-i].re = scratch[i].re;
-            scratch[N-i].im = -scratch[i].im;
-        }
-        //Copy nyquist
-        scratch[N/2].re = H_hat[N/2].re;
-        scratch[N/2].im = H_hat[N/2].im;
+    for(int i=1; i<N/2; i++) {
+        scratch[N-i].re = scratch[i].re;
+        scratch[N-i].im = -scratch[i].im;
     }
     //IFFT
     bit_reverse((complex_double_t *)scratch, N);
     inverse_fft((complex_double_t *)scratch, N, sine_lut_ifft);
-    for(int i=AEC_FRAME_ADVANCE; i<AEC_PROC_FRAME_LENGTH; i++) {
-        scratch[i].re = 0.0;
-    }
-    bit_reverse((complex_double_t*)scratch, N);
-    forward_fft((complex_double_t*)scratch, N, sine_lut);
 
-    for(int i=0; i<N/2+1; i++) {
-        H_hat[i].re = scratch[i].re;
-        H_hat[i].im = scratch[i].im;
+    //add the first AEC_FRAME_ADVANCE time-domain samples to the filter phase
+    for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+        h_hat[i] += scratch[i].re;
     }
 }
 void test_aec_filter_adapt() {
@@ -69,7 +56,7 @@ void test_aec_filter_adapt() {
     aec_init(&aec_state, num_y_channels, num_x_channels, main_filter_phases, shadow_filter_phases, &aec_tdist_chans2_threads2);
 
     //Declare floating point arrays
-    complex_double_t H_hat_fp[TEST_NUM_Y][TEST_NUM_X*TEST_MAIN_PHASES][NUM_BINS];
+    double h_hat_fp[TEST_NUM_Y][TEST_NUM_X*TEST_MAIN_PHASES][AEC_FRAME_ADVANCE];
     complex_double_t X_fifo_fp[TEST_NUM_X][TEST_MAIN_PHASES][NUM_BINS];
     complex_double_t T_fp[TEST_NUM_X][NUM_BINS];
 
@@ -91,23 +78,18 @@ void test_aec_filter_adapt() {
         state_ptr->shared_state->config_params.aec_core_conf.bypass = pseudo_rand_uint32(&seed) % 2;
         unsigned test_l2_api = pseudo_rand_uint32(&seed) % 2;
         aec_frame_init(&aec_state.main_state, &aec_state.shadow_state, &new_frame[0], &new_frame[AEC_MAX_Y_CHANNELS]);
-        //Generate H_hat
+        //Generate h_hat (time domain, AEC_FRAME_ADVANCE real samples per phase). h_hat_fp holds the taps in time
+        //order, so the DUT's taps have to be written through aec_h_hat_tap_index() - the DUT stores them permuted.
         for(int ch=0; ch<num_y_channels; ch++) {
             for(int ph=0; ph<num_x_channels*state_ptr->num_phases; ph++) {
-                state_ptr->H_hat[ch][ph].exp = pseudo_rand_int(&seed, -31, 32);
-                state_ptr->H_hat[ch][ph].hr = pseudo_rand_uint32(&seed) % 5;
-                for(int i=0; i<NUM_BINS; i++) {
-                    state_ptr->H_hat[ch][ph].data[i].re = pseudo_rand_int32(&seed) >> state_ptr->H_hat[ch][ph].hr;
-                    state_ptr->H_hat[ch][ph].data[i].im = pseudo_rand_int32(&seed) >> state_ptr->H_hat[ch][ph].hr;
+                state_ptr->h_hat[ch][ph].exp = pseudo_rand_int(&seed, -31, 32);
+                state_ptr->h_hat[ch][ph].hr = pseudo_rand_uint32(&seed) % 5;
+                for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                    int32_t tap = pseudo_rand_int32(&seed) >> state_ptr->h_hat[ch][ph].hr;
+                    state_ptr->h_hat[ch][ph].data[aec_h_hat_tap_index(i)] = tap;
 
-                    H_hat_fp[ch][ph][i].re = ldexp(state_ptr->H_hat[ch][ph].data[i].re, state_ptr->H_hat[ch][ph].exp);
-                    H_hat_fp[ch][ph][i].im = ldexp(state_ptr->H_hat[ch][ph].data[i].im, state_ptr->H_hat[ch][ph].exp);
+                    h_hat_fp[ch][ph][i] = ldexp(tap, state_ptr->h_hat[ch][ph].exp);
                 }
-                //DC and Nyquist bin imaginary=0
-                state_ptr->H_hat[ch][ph].data[0].im = 0;
-                state_ptr->H_hat[ch][ph].data[NUM_BINS-1].im = 0;
-                H_hat_fp[ch][ph][0].im = 0.0;
-                H_hat_fp[ch][ph][NUM_BINS-1].im = 0.0;
             }
         }
         //Generate X_fifo, (always for number of phases in aec_state.main_state)
@@ -153,7 +135,7 @@ void test_aec_filter_adapt() {
         for(int ych=0; ych<num_y_channels; ych++) {
             for(int xch=0; xch<num_x_channels; xch++) {
                 for(int p=0; p<state_ptr->num_phases; p++) {
-                    aec_filter_adapt_fp(H_hat_fp[ych][xch*state_ptr->num_phases + p], X_fifo_fp[xch][p], T_fp[xch], state_ptr->shared_state->config_params.aec_core_conf.bypass);
+                    aec_filter_adapt_fp(h_hat_fp[ych][xch*state_ptr->num_phases + p], X_fifo_fp[xch][p], T_fp[xch], state_ptr->shared_state->config_params.aec_core_conf.bypass);
                 }
             }
         }
@@ -182,25 +164,29 @@ void test_aec_filter_adapt() {
                             remaining_phases -= num_phases;
                         }
                         for(int ph=start_phase; ph<start_phase+num_phases; ph++) {
-                            aec_l2_adapt_plus_fft_gc(&state_ptr->H_hat[ch][ph], &state_ptr->X_fifo_1d[ph], &state_ptr->T[ph/state_ptr->num_phases]);
+                            aec_l2_adapt_plus_ifft(&state_ptr->h_hat[ch][ph], &state_ptr->X_fifo_1d[ph], &state_ptr->T[ph/state_ptr->num_phases]);
                         }
                         start_phase += num_phases;
                     }
                 }
             }
         }
-        //Compare outputs
+        //Compare outputs. Undo the DUT's tap permutation so the comparison is against h_hat_fp in time order.
         for(int ch=0; ch<num_y_channels; ch++) {
             for(int p=0; p<num_x_channels*state_ptr->num_phases; p++) {
+                int32_t h_hat_td[AEC_FRAME_ADVANCE];
+                for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                    h_hat_td[i] = state_ptr->h_hat[ch][p].data[aec_h_hat_tap_index(i)];
+                }
                 unsigned diff = vector_int32_maxdiff(
-                        (int32_t*)&state_ptr->H_hat[ch][p].data[0],
-                        state_ptr->H_hat[ch][p].exp,
-                        (double*)&H_hat_fp[ch][p][0],
+                        h_hat_td,
+                        state_ptr->h_hat[ch][p].exp,
+                        (double*)&h_hat_fp[ch][p][0],
                         0,
-                        (AEC_PROC_FRAME_LENGTH/2+1)*2);
+                        AEC_FRAME_ADVANCE);
                 //printf("diff %d\n",diff);
                 max_diff = (diff > max_diff) ? diff : max_diff;
-                TEST_ASSERT_LESS_OR_EQUAL_UINT32_MESSAGE(1<<7, diff, "H_hat diff too large.");
+                TEST_ASSERT_LESS_OR_EQUAL_UINT32_MESSAGE(1<<7, diff, "h_hat diff too large.");
             }
         }
     }

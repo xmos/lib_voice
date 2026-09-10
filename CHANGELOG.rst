@@ -5,6 +5,17 @@ lib_voice change log
 -----
 
   * ADDED: Initial `vx4b` support
+  * ADDED: `aec_h_hat_tap_index()`, for mapping a tap's position in an AEC filter phase's impulse
+    response to its position in the stored phase
+  * CHANGED: The AEC adaptive filter is stored in the time domain rather than the frequency domain,
+    reducing AEC memory use by around 25%. Its taps are stored in bit-reversed index order so that
+    the per-phase transforms need no index bit-reversal pass; use `aec_h_hat_tap_index()` to read
+    the filter in time order
+  * CHANGED: The lib_xcore_math FFT look-up tables are now generated at build time, sized for the
+    512-point transforms lib_voice performs (`XMATH_GEN_FFT_LUT`/`XMATH_MAX_FFT_LEN_LOG2`), rather
+    than using the 1024-point tables shipped with lib_xcore_math. This saves 8192 bytes on any tile
+    running an FFT-based component. Building now requires Python 3 and numpy, both already needed
+    to build the VNR model with ai_tools
   * CHANGED: `app_pipeline` example is now single-tile
 
   * Changes to dependencies:

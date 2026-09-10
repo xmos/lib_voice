@@ -18,10 +18,10 @@ void pipeline_init(pipeline_state_t *state) {
     aec_non_de_mode_conf.num_shadow_filt_phases = AEC_SHADOW_FILTER_PHASES;
     aec_non_de_mode_conf.tdist = &tdist;
 
-    aec_de_mode_conf.num_y_channels = 1;
-    aec_de_mode_conf.num_x_channels = 1;
-    aec_de_mode_conf.num_main_filt_phases = 30;
-    aec_de_mode_conf.num_shadow_filt_phases = 0;
+    aec_de_mode_conf.num_y_channels = ADEC_DE_MODE_Y_CHANNELS;
+    aec_de_mode_conf.num_x_channels = ADEC_DE_MODE_X_CHANNELS;
+    aec_de_mode_conf.num_main_filt_phases = ADEC_DE_MODE_MAIN_FILTER_PHASES;
+    aec_de_mode_conf.num_shadow_filt_phases = ADEC_DE_MODE_SHADOW_FILTER_PHASES;
     aec_de_mode_conf.tdist = &tdist;
 
     // Disable ADEC's automatic mode. We only want to estimate and correct for the delay at startup
@@ -57,7 +57,7 @@ void pipeline_process_frame(pipeline_state_t *state,
     /** Stage1 - AEC, DE, ADEC*/
     // stage1 will not process the frame in-place,
     // since mic input is needed to overwrite the output in certain cases
-    int32_t stage_1_out[AEC_MAX_Y_CHANNELS][AP_FRAME_ADVANCE];
+    int32_t stage_1_out[AP_MAX_Y_CHANNELS][AP_FRAME_ADVANCE];
 
     stage1_process_frame(&state->stage_1_state, &stage_1_out[0], &md.max_ref_energy,
             &md.aec_corr_factor, &md.ref_active_flag, input_y_data, input_x_data);

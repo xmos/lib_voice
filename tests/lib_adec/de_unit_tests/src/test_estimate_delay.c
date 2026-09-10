@@ -10,7 +10,8 @@
 //Note this is larger than AEC_LIB_MAIN_FILTER_PHASES but AEC_MAX_Y_CHANNELS and AEC_MAX_X_CHANNELS are 2 so it works..
 //i.e. 30 <= 10 * 2 * 2
 #define NUM_PHASES_DELAY_EST    30
-#define PHASE_CMPLX_AIR_LEN     257
+//The AEC filter is stored in the time domain; each phase has AEC_FRAME_ADVANCE real taps.
+#define PHASE_LEN               AEC_FRAME_ADVANCE
 
 typedef struct {
     double re;
@@ -19,16 +20,16 @@ typedef struct {
 
 typedef dsp_complex_float_t dsp_complex_fp;
 
-//From test_cal_fd_frame_energy
-static void calc_fd_frame_energy_fp(double *output, dsp_complex_fp *input, int length) {
+//Time domain per-phase energy (sum of squared taps)
+static void calc_td_frame_energy_fp(double *output, double *input, int length) {
     *output = 0.0;
     for(int i=0; i<length; i++) {
-        *output += ((input[i].re * input[i].re) + (input[i].im * input[i].im));
+        *output += (input[i] * input[i]);
     }
 }
 
 
-int estimate_delay_fp(  dsp_complex_fp H_hat[1][NUM_PHASES_DELAY_EST][PHASE_CMPLX_AIR_LEN], int32_t num_phases, int32_t len_phase,
+int estimate_delay_fp(  double h_hat[1][NUM_PHASES_DELAY_EST][PHASE_LEN], int32_t num_phases, int32_t len_phase,
                             double *sum_phase_powers, double phase_powers[NUM_PHASES_DELAY_EST], double *peak_to_average_ratio,
                             double *peak_phase_power, int32_t *peak_power_phase_index){
 
@@ -39,7 +40,7 @@ int estimate_delay_fp(  dsp_complex_fp H_hat[1][NUM_PHASES_DELAY_EST][PHASE_CMPL
     for(int ch=0; ch<1; ch++) { //estimate delay for the first y-channel
         for(int ph=0; ph<num_phases; ph++) { //compute delay over 1 x-y pair phases
             double phase_power;
-            calc_fd_frame_energy_fp(&phase_power, H_hat[ch][ph], len_phase);
+            calc_td_frame_energy_fp(&phase_power, h_hat[ch][ph], len_phase);
             phase_powers[ph] = phase_power;
             // printf("ph %d power %lf\n",ph, phase_power);
             *sum_phase_powers += phase_power;
@@ -64,7 +65,7 @@ void test_delay_estimate() {
     aec_state_t aec_state;
 
     //FP version of phase coeffs
-    dsp_complex_fp H_hat[1][NUM_PHASES_DELAY_EST][PHASE_CMPLX_AIR_LEN] = {{{{0.0}}}};
+    double h_hat[1][NUM_PHASES_DELAY_EST][PHASE_LEN] = {{{0.0}}};
 
     const unsigned num_phases = 30;
     unsigned seed = 34575;
@@ -74,29 +75,27 @@ void test_delay_estimate() {
     de_output_t de_output;
     for(unsigned ph = 0; ph < num_phases; ph++){
         aec_init(&aec_state, 1, 1, num_phases, 0, &aec_tdist_chans2_threads2);
-        memset(H_hat, 0, sizeof(H_hat));
+        memset(h_hat, 0, sizeof(h_hat));
 
-        unsigned length = aec_state.main_state.H_hat[ch][ph].length;
-        TEST_ASSERT_EQUAL_INT32_MESSAGE(length, PHASE_CMPLX_AIR_LEN, "Phase length assumption wrong");
+        unsigned length = aec_state.main_state.h_hat[ch][ph].length;
+        TEST_ASSERT_EQUAL_INT32_MESSAGE(length, PHASE_LEN, "Phase length assumption wrong");
 
 
-        aec_state.main_state.H_hat[ch][ph].exp = pseudo_rand_int(&seed, -39, 39);
+        aec_state.main_state.h_hat[ch][ph].exp = pseudo_rand_int(&seed, -39, 39);
         for(unsigned i = 0; i < length; i++){
-            aec_state.main_state.H_hat[ch][ph].data[i].re = pseudo_rand_int32(&seed);
-            aec_state.main_state.H_hat[ch][ph].data[i].im = pseudo_rand_int32(&seed);
+            aec_state.main_state.h_hat[ch][ph].data[i] = pseudo_rand_int32(&seed);
 
-            H_hat[ch][ph][i].re = ldexp(aec_state.main_state.H_hat[ch][ph].data[i].re, aec_state.main_state.H_hat[ch][ph].exp);
-            H_hat[ch][ph][i].im = ldexp(aec_state.main_state.H_hat[ch][ph].data[i].im, aec_state.main_state.H_hat[ch][ph].exp);
+            h_hat[ch][ph][i] = ldexp(aec_state.main_state.h_hat[ch][ph].data[i], aec_state.main_state.h_hat[ch][ph].exp);
 
         }
-        adec_estimate_delay(&de_output, aec_state.main_state.H_hat[0], aec_state.main_state.num_phases);
+        adec_estimate_delay(&de_output, aec_state.main_state.h_hat[0], aec_state.main_state.num_phases);
 
         double sum_phase_powers;
         double phase_powers[NUM_PHASES_DELAY_EST];
         double peak_to_average_ratio;
         double peak_phase_power;
         int32_t peak_power_phase_index;
-        int measured_delay_fp = estimate_delay_fp(H_hat, NUM_PHASES_DELAY_EST, PHASE_CMPLX_AIR_LEN,
+        int measured_delay_fp = estimate_delay_fp(h_hat, NUM_PHASES_DELAY_EST, PHASE_LEN,
                                     &sum_phase_powers, phase_powers, &peak_to_average_ratio, &peak_phase_power, &peak_power_phase_index);
 
         int actual_delay = ph * AEC_FRAME_ADVANCE;
@@ -115,7 +114,7 @@ void test_delay_estimate() {
         double peak_phase_power_ratio = peak_phase_power / dut_peak_phase_power_fp;
         double peak_to_average_ratio_ratio = peak_to_average_ratio / dut_peak_to_average_ratio_fp;
 
-        // printf("exponent: %d\n", aec_state.main_state.H_hat[ch][ph].exp);
+        // printf("exponent: %d\n", aec_state.main_state.h_hat[ch][ph].exp);
         // printf("sum_phase_powers ref: %lf dut: %lf, ratio: %lf\n", sum_phase_powers, dut_sum_phase_powers_fp, sum_phase_powers_ratio);
         // printf("peak_phase_power ref: %lf dut: %lf, ratio: %lf\n", peak_phase_power, dut_peak_phase_power_fp, peak_phase_power_ratio);
         // printf("peak_to_average_ratio ref: %lf dut: %lf, ratio: %lf\n", peak_to_average_ratio, dut_peak_to_average_ratio_fp, peak_to_average_ratio_ratio);
@@ -129,16 +128,16 @@ void test_delay_estimate() {
     //Now try a few corner cases
 
     aec_init(&aec_state, 1, 1, num_phases, 0, &aec_tdist_chans2_threads2);
-    memset(H_hat, 0, sizeof(H_hat));
+    memset(h_hat, 0, sizeof(h_hat));
 
     double sum_phase_powers;
     double phase_powers[NUM_PHASES_DELAY_EST];
     double peak_to_average_ratio;
     double peak_phase_power;
     int32_t peak_power_phase_index;
-    int measured_delay_fp = estimate_delay_fp(H_hat, NUM_PHASES_DELAY_EST, PHASE_CMPLX_AIR_LEN,
+    int measured_delay_fp = estimate_delay_fp(h_hat, NUM_PHASES_DELAY_EST, PHASE_LEN,
                                 &sum_phase_powers, phase_powers, &peak_to_average_ratio, &peak_phase_power, &peak_power_phase_index);
-    adec_estimate_delay(&de_output, aec_state.main_state.H_hat[0], aec_state.main_state.num_phases);
+    adec_estimate_delay(&de_output, aec_state.main_state.h_hat[0], aec_state.main_state.num_phases);
     double dut_peak_to_average_ratio_fp = ldexp(de_output.peak_to_average_ratio.mant, de_output.peak_to_average_ratio.exp);
     printf("peak_to_average_ratio ref: %lf dut: %lf\n", peak_to_average_ratio, dut_peak_to_average_ratio_fp);
 

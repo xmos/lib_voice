@@ -3,7 +3,10 @@
 #ifndef pipeline_config_h_
 #define pipeline_config_h_
 
-#define AP_MAX_Y_CHANNELS (AEC_MAX_Y_CHANNELS)
+#include "stage1.h"
+
+/* Mic channels the pipeline carries; see STAGE1_MAX_Y_CHANNELS in stage1.h */
+#define AP_MAX_Y_CHANNELS (STAGE1_MAX_Y_CHANNELS)
 #define AP_MAX_X_CHANNELS (AEC_MAX_X_CHANNELS)
 #define AP_FRAME_ADVANCE  (AEC_FRAME_ADVANCE)
 

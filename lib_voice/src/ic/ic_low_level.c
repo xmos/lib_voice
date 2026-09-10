@@ -93,7 +93,7 @@ void ic_frame_init(
         const exponent_t zero_exp = -1024;
         state->Y_hat_bfp[ch].exp = zero_exp;
         state->Y_hat_bfp[ch].hr = 0;
-        memset(&state->Y_hat_bfp[ch].data[0], 0, IC_FD_FRAME_LENGTH*sizeof(complex_s32_t));
+        vect_s32_set((int32_t*)&state->Y_hat_bfp[ch].data[0], 0, 2*IC_FD_FRAME_LENGTH);
     }
 }
 
@@ -234,7 +234,7 @@ void ic_compute_T(
     aec_priv_compute_T(T_ptr, Error_ptr, inv_X_energy_ptr, mu);
 }
 
-// Adapt H_hat
+// Adapt h_hat
 void ic_filter_adapt(ic_state_t *state){
     if((state->ic_adaption_controller_state.adaption_controller_config.enable_adaption == 0) ||
        state->config_params.bypass ||

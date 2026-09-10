@@ -20,6 +20,25 @@
 #define VNR_AGC_THRESHOLD (0.5)
 #define PRINT_VNR_PREDICTION (0)
 
+//Task distribution generated from this build config's AEC_SCHEDULE_CONFIG_<config>
+extern aec_task_distribution_t tdist;
+
+//The AEC compile time configuration is supplied by the build (see CMakeLists.txt) rather than being
+//hardcoded here. Assert the values this test expects, so that a change to the schedule config that
+//no longer matches the pipeline it is meant to build fails at compile time.
+#if ALT_ARCH_MODE
+_Static_assert(AEC_MAX_Y_CHANNELS == 1,
+        "alt arch runs a 1 y channel AEC; the pipeline still carries STAGE1_MAX_Y_CHANNELS mics");
+_Static_assert(AEC_MAX_X_CHANNELS == 2, "alt arch expects a 2 x channel AEC");
+_Static_assert(AEC_MAIN_FILTER_PHASES == 15, "alt arch expects a 15 main filter phase AEC");
+#else
+_Static_assert(AEC_MAX_Y_CHANNELS == 2, "std arch expects a 2 y channel AEC");
+_Static_assert(AEC_MAX_X_CHANNELS == 2, "std arch expects a 2 x channel AEC");
+_Static_assert(AEC_MAIN_FILTER_PHASES == 10, "std arch expects a 10 main filter phase AEC");
+#endif
+_Static_assert(AP_MAX_Y_CHANNELS == 2, "The pipeline carries 2 mic channels in every configuration");
+_Static_assert(AP_MAX_X_CHANNELS == 2, "The pipeline carries 2 reference channels in every configuration");
+
 /// pipeline_stage_1
 // Stage 1 state
 stage1_t DWORD_ALIGNED stage_1_state = {0};
@@ -28,24 +47,20 @@ void pipeline_stage_1(chanend_t c_frame_in, chanend_t c_frame_out) {
     pipeline_metadata_t md;
 
     aec_conf_t aec_de_mode_conf, aec_non_de_mode_conf;
-#if ALT_ARCH_MODE
-    aec_non_de_mode_conf.num_y_channels = 1;
-    aec_non_de_mode_conf.num_x_channels = AP_MAX_X_CHANNELS;
-    aec_non_de_mode_conf.num_main_filt_phases = 15;
-    aec_non_de_mode_conf.num_shadow_filt_phases = AEC_SHADOW_FILTER_PHASES;
-#else
-    aec_non_de_mode_conf.num_y_channels = AP_MAX_Y_CHANNELS;
-    aec_non_de_mode_conf.num_x_channels = AP_MAX_X_CHANNELS;
+    //Non DE mode runs the AEC the build was configured for, so both build configs read the same
+    //compile time values here. The difference between std arch and alt arch is in the AEC schedule
+    //config the build supplies (see this test's CMakeLists.txt), not in this code.
+    aec_non_de_mode_conf.num_y_channels = AEC_MAX_Y_CHANNELS;
+    aec_non_de_mode_conf.num_x_channels = AEC_MAX_X_CHANNELS;
     aec_non_de_mode_conf.num_main_filt_phases = AEC_MAIN_FILTER_PHASES;
     aec_non_de_mode_conf.num_shadow_filt_phases = AEC_SHADOW_FILTER_PHASES;
-#endif
-    aec_non_de_mode_conf.tdist = &aec_tdist_chans2_threads2;
+    aec_non_de_mode_conf.tdist = &tdist;
 
-    aec_de_mode_conf.num_y_channels = 1;
-    aec_de_mode_conf.num_x_channels = 1;
-    aec_de_mode_conf.num_main_filt_phases = 30;
-    aec_de_mode_conf.num_shadow_filt_phases = 0;
-    aec_de_mode_conf.tdist = &aec_tdist_chans2_threads2;
+    aec_de_mode_conf.num_y_channels = ADEC_DE_MODE_Y_CHANNELS;
+    aec_de_mode_conf.num_x_channels = ADEC_DE_MODE_X_CHANNELS;
+    aec_de_mode_conf.num_main_filt_phases = ADEC_DE_MODE_MAIN_FILTER_PHASES;
+    aec_de_mode_conf.num_shadow_filt_phases = ADEC_DE_MODE_SHADOW_FILTER_PHASES;
+    aec_de_mode_conf.tdist = &tdist;
 
     // Disable ADEC's automatic mode. We only want to estimate and correct for the delay at startup
     adec_config_t adec_conf;

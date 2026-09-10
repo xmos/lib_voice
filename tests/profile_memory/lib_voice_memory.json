@@ -1,44 +1,44 @@
 {
   "xs3a": {
+    "app_memory_adec": {
+      "total": 11328,
+      "stack": 1796,
+      "program": 9532
+    },
+    "app_memory_aec_alt_arch": {
+      "total": 196088,
+      "stack": 150972,
+      "program": 45116
+    },
+    "app_memory_aec_std_arch": {
+      "total": 211528,
+      "stack": 166364,
+      "program": 45164
+    },
     "app_memory_agc": {
       "total": 13704,
       "stack": 4100,
       "program": 9604
-    },
-    "app_memory_ns": {
-      "total": 39424,
-      "stack": 18068,
-      "program": 21356
     },
     "app_memory_empty": {
       "total": 4232,
       "stack": 348,
       "program": 3884
     },
-    "app_memory_aec_std_arch": {
-      "total": 282040,
-      "stack": 228932,
-      "program": 53108
+    "app_memory_ic": {
+      "total": 132288,
+      "stack": 67100,
+      "program": 65188
     },
-    "app_memory_adec": {
-      "total": 12392,
-      "stack": 2500,
-      "program": 9892
+    "app_memory_ns": {
+      "total": 35328,
+      "stack": 18068,
+      "program": 17260
     },
     "app_memory_vnr": {
-      "total": 63936,
+      "total": 59840,
       "stack": 9132,
-      "program": 54804
-    },
-    "app_memory_aec_alt_arch": {
-      "total": 244632,
-      "stack": 191620,
-      "program": 53012
-    },
-    "app_memory_ic": {
-      "total": 140432,
-      "stack": 67100,
-      "program": 73332
+      "program": 50708
     }
   }
 }

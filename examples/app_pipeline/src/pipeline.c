@@ -5,29 +5,29 @@
 
 #include "pipeline_state.h"
 
+// Task distribution generated from this build config's AEC_SCHEDULE_CONFIG_<config>
+extern aec_task_distribution_t tdist;
+
 void pipeline_thread0_init(pipeline_state_thread0_t *state) {
     memset(state, 0, sizeof(pipeline_state_thread0_t));
 
     // Initialise AEC, DE, ADEC stages
     aec_conf_t aec_de_mode_conf, aec_non_de_mode_conf;
-#if ALT_ARCH_MODE
-    aec_non_de_mode_conf.num_y_channels = 1;
-    aec_non_de_mode_conf.num_x_channels = AP_MAX_X_CHANNELS;
-    aec_non_de_mode_conf.num_main_filt_phases = 15;
-    aec_non_de_mode_conf.num_shadow_filt_phases = AEC_SHADOW_FILTER_PHASES;
-#else
-    aec_non_de_mode_conf.num_y_channels = AP_MAX_Y_CHANNELS;
-    aec_non_de_mode_conf.num_x_channels = AP_MAX_X_CHANNELS;
+    // Non DE mode runs the AEC this build was configured for, so both build configs read the same
+    // compile time values here. The difference between std arch and alt arch is in the AEC schedule
+    // config the build supplies (see CMakeLists.txt), not in this code: alt arch is built for 1 y
+    // channel and 15 main filter phases, std arch for 2 y channels and 10.
+    aec_non_de_mode_conf.num_y_channels = AEC_MAX_Y_CHANNELS;
+    aec_non_de_mode_conf.num_x_channels = AEC_MAX_X_CHANNELS;
     aec_non_de_mode_conf.num_main_filt_phases = AEC_MAIN_FILTER_PHASES;
     aec_non_de_mode_conf.num_shadow_filt_phases = AEC_SHADOW_FILTER_PHASES;
-#endif
-    aec_non_de_mode_conf.tdist = &aec_tdist_chans2_threads1;
+    aec_non_de_mode_conf.tdist = &tdist;
 
-    aec_de_mode_conf.num_y_channels = 1;
-    aec_de_mode_conf.num_x_channels = 1;
-    aec_de_mode_conf.num_main_filt_phases = 30;
-    aec_de_mode_conf.num_shadow_filt_phases = 0;
-    aec_de_mode_conf.tdist = &aec_tdist_chans2_threads1;
+    aec_de_mode_conf.num_y_channels = ADEC_DE_MODE_Y_CHANNELS;
+    aec_de_mode_conf.num_x_channels = ADEC_DE_MODE_X_CHANNELS;
+    aec_de_mode_conf.num_main_filt_phases = ADEC_DE_MODE_MAIN_FILTER_PHASES;
+    aec_de_mode_conf.num_shadow_filt_phases = ADEC_DE_MODE_SHADOW_FILTER_PHASES;
+    aec_de_mode_conf.tdist = &tdist;
 
     // Disable ADEC's automatic mode. We only want to estimate and correct for the delay at startup
     adec_config_t adec_conf;
@@ -70,12 +70,12 @@ void pipeline_process_frame_thread0(pipeline_state_thread0_t *state,
     /** Stage1 - AEC, DE, ADEC*/
     // stage1 will not process the frame in-place,
     // since mic input is needed to overwrite the output in certain cases
-    int32_t stage_1_out[AEC_MAX_Y_CHANNELS][AP_FRAME_ADVANCE];
+    int32_t stage_1_out[AP_MAX_Y_CHANNELS][AP_FRAME_ADVANCE];
 
     stage1_process_frame(&state->stage_1_state, &stage_1_out[0], &md.max_ref_energy,
             &md.aec_corr_factor[0], &md.ref_active_flag, input_y_data, input_x_data);
 
-    memcpy(&output_data[0][0], &stage_1_out[0][0], AEC_MAX_Y_CHANNELS*AP_FRAME_ADVANCE*sizeof(int32_t));
+    memcpy(&output_data[0][0], &stage_1_out[0][0], AP_MAX_Y_CHANNELS*AP_FRAME_ADVANCE*sizeof(int32_t));
     memcpy(md_output, &md, sizeof(pipeline_metadata_t));
 }
 

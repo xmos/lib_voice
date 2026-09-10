@@ -114,7 +114,7 @@
  * phases across adaptive filters for all x-y pairs.
  *
  * For example. for a 2 y-channels, 2 x-channels, 10 phases per x channel configuration, there are 4 adaptive filters,
- * H_hat<SUB>y0x0</SUB>, H_hat<SUB>y0x1</SUB>, H_hat<SUB>y1x0</SUB> and H_hat<SUB>y1x1</SUB>, each filter having 10
+ * h_hat<SUB>y0x0</SUB>, h_hat<SUB>y0x1</SUB>, h_hat<SUB>y1x0</SUB> and h_hat<SUB>y1x1</SUB>, each filter having 10
  * phases, so the total number of phases is 40.
  * When aec_init() is called to initialise the AEC, the num_y_channels, num_x_channels and num_main_filter_phases
  * parameters passed in should be such that num_y_channels * num_x_channels * num_main_filter_phases is less than equal

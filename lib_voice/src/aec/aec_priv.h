@@ -12,6 +12,46 @@
 #define AEC_INPUT_EXP (-31) /// Exponent of AEC input and output
 #define AEC_WINDOW_EXP (-31) /// Hanning window coefficients exponent
 
+/** @name h_hat bit-reversed storage layout
+ *
+ * The AEC adaptive filter is stored in the time domain, with its taps held in the bit-reversed
+ * index order the low level FFT functions work in. See aec_state_t::h_hat for why.
+ *
+ * An AEC_PROC_FRAME_LENGTH point real FFT is computed as an AEC_PROC_FRAME_LENGTH/2 point complex
+ * FFT over a vector whose element `c` holds the real time domain samples `td[2c]` and `td[2c+1]`.
+ * The transform wants that vector in bit-reversed index order, i.e. slot `j` holding
+ * `c[n_bitrev(j)]`. Two properties of that permutation make the storage work out:
+ *
+ * - An odd slot `j` always holds a `c` from the second half of the frame, i.e. taps
+ *   `td[AEC_PROC_FRAME_LENGTH/2]` onwards. Those taps are always zero, so odd slots are not stored.
+ * - Of the AEC_H_HAT_BITREV_SLOTS even slots, the ones holding the taps between AEC_FRAME_ADVANCE
+ *   and AEC_PROC_FRAME_LENGTH/2 - also always zero - are exactly every AEC_H_HAT_BITREV_GROUP'th
+ *   one. Those are not stored either.
+ *
+ * What remains is exactly the AEC_FRAME_ADVANCE taps of the filter, so bit-reversed storage costs
+ * no more memory than natural order storage does. Zeroing the taps that are not stored *is* the
+ * AEC gradient constraint, so it costs nothing either.
+ */
+///@{
+/** Number of even bit-reversed slots, i.e. complex time domain elements in the first half of the frame. */
+#define AEC_H_HAT_BITREV_SLOTS (AEC_PROC_FRAME_LENGTH / 4)
+/** Number of complex time domain elements h_hat stores. */
+#define AEC_H_HAT_BITREV_KEPT (AEC_FRAME_ADVANCE / 2)
+/** Number of even bit-reversed slots dropped because the gradient constraint zeroes them. */
+#define AEC_H_HAT_BITREV_DROPPED (AEC_H_HAT_BITREV_SLOTS - AEC_H_HAT_BITREV_KEPT)
+/** Every AEC_H_HAT_BITREV_GROUP'th even bit-reversed slot is one of the dropped ones. */
+#define AEC_H_HAT_BITREV_GROUP (AEC_H_HAT_BITREV_SLOTS / AEC_H_HAT_BITREV_DROPPED)
+///@}
+
+/* The "every AEC_H_HAT_BITREV_GROUP'th slot" shortcut above only holds when the dropped slots are a
+ * power of two count aligned to the top of the frame, which is where AEC_FRAME_ADVANCE and
+ * AEC_PROC_FRAME_LENGTH happen to sit. Fail the build loudly rather than silently mis-index if
+ * either is ever changed to a combination that breaks it. */
+_Static_assert((AEC_H_HAT_BITREV_DROPPED & (AEC_H_HAT_BITREV_DROPPED - 1)) == 0,
+        "h_hat bit-reversed storage needs a power of two number of dropped slots");
+_Static_assert(AEC_H_HAT_BITREV_GROUP * AEC_H_HAT_BITREV_DROPPED == AEC_H_HAT_BITREV_SLOTS,
+        "h_hat bit-reversed storage needs the dropped slots to divide the slot count");
+
 /**
  * @brief Initialise AEC data structures for processing a new frame
  *
@@ -247,10 +287,10 @@ void aec_calc_T(
 
 /** @brief Update filter
  *
- * This function updates the adaptive filter spectrum (`H_hat'). It calculates the delta update that is applied to the filter by scaling the X FIFO with the T values computed in `aec_compute_T()` and applies the delta update to `H_hat`.
+ * This function updates the adaptive filter spectrum (`h_hat'). It calculates the delta update that is applied to the filter by scaling the X FIFO with the T values computed in `aec_compute_T()` and applies the delta update to `h_hat`.
  * A gradient constraint FFT is then applied to constrain the length of each phase of the filter to avoid wrapping when calculating `y_hat`
  *
- * @param[inout] state AEC state structure. `state->H_hat[y_ch]` is updated
+ * @param[inout] state AEC state structure. `state->h_hat[y_ch]` is updated
  * @param[in] y_ch mic channel index
  *
  * @ingroup aec_func
@@ -294,12 +334,48 @@ void aec_l2_calc_Error_and_Y_hat(
         int32_t bypass_enabled);
 
 /**
+ * @brief Calculate Error and Y_hat for a time domain filter over a range of bins.
+ *
+ * Each phase of `h_hat` is expanded from its bit-reversed storage and transformed to the frequency
+ * domain on the fly. Because the storage is already bit-reversed, the forward transform needs no
+ * index bit-reversal pass.
+ *
+ * @ingroup aec_low_level_func
+ */
+void aec_l2_calc_Error_and_Y_hat_td(
+        bfp_complex_s32_t *Error,
+        bfp_complex_s32_t *Y_hat,
+        const bfp_complex_s32_t *Y,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_s32_t *h_hat,
+        unsigned num_x_channels,
+        unsigned num_phases,
+        unsigned start_offset,
+        unsigned length,
+        int32_t bypass_enabled);
+
+/**
  * @brief Adapt one phase of the adaptive filter
  *
  * @ingroup aec_low_level_func
  */
 void aec_l2_adapt_plus_fft_gc(
         bfp_complex_s32_t *H_hat_ph,
+        const bfp_complex_s32_t *X_fifo_ph,
+        const bfp_complex_s32_t *T_ph
+        );
+
+/**
+ * @brief Adapt one phase of the time domain adaptive filter
+ *
+ * The inverse transform of the delta update leaves its time domain result in bit-reversed index
+ * order, which is the order `h_hat` is stored in, so no index bit-reversal pass is needed. The
+ * gradient constraint is applied by discarding the taps that `h_hat` has no storage for.
+ *
+ * @ingroup aec_low_level_func
+ */
+void aec_l2_adapt_plus_ifft(
+        bfp_s32_t *h_hat_ph,
         const bfp_complex_s32_t *X_fifo_ph,
         const bfp_complex_s32_t *T_ph
         );
@@ -350,9 +426,14 @@ void aec_priv_reset_filter(
         unsigned num_x_channels,
         unsigned num_phases);
 
+void aec_priv_reset_filter_td(
+        bfp_s32_t *h_hat,
+        unsigned num_x_channels,
+        unsigned num_phases);
+
 void aec_priv_copy_filter(
-        bfp_complex_s32_t *H_hat_dst,
-        const bfp_complex_s32_t *H_hat_src,
+        bfp_s32_t *h_hat_dst,
+        const bfp_s32_t *h_hat_src,
         unsigned num_x_channels,
         unsigned num_dst_phases,
         unsigned num_src_phases);
@@ -360,6 +441,10 @@ void aec_priv_copy_filter(
 void aec_priv_bfp_complex_s32_copy(
         bfp_complex_s32_t *dst,
         const bfp_complex_s32_t *src);
+
+void aec_priv_bfp_s32_copy(
+        bfp_s32_t *dst,
+        const bfp_s32_t *src);
 
 void aec_priv_bfp_s32_reset(bfp_s32_t *a);
 
@@ -410,6 +495,16 @@ void aec_priv_calc_Error_and_Y_hat(
         unsigned num_phases,
         int32_t bypass_enabled);
 
+void aec_priv_calc_Error_and_Y_hat_td(
+        bfp_complex_s32_t *Error,
+        bfp_complex_s32_t *Y_hat,
+        const bfp_complex_s32_t *Y,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_s32_t *h_hat,
+        unsigned num_x_channels,
+        unsigned num_phases,
+        int32_t bypass_enabled);
+
 void aec_priv_calc_coherence(
         coherence_mu_params_t *coh_mu_state,
         const bfp_s32_t *y,
@@ -448,6 +543,13 @@ void aec_priv_calc_inv_X_energy(
 
 void aec_priv_filter_adapt(
         bfp_complex_s32_t *H_hat,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_complex_s32_t *T,
+        unsigned num_x_channels,
+        unsigned num_phases);
+
+void aec_priv_filter_adapt_td(
+        bfp_s32_t *h_hat,
         const bfp_complex_s32_t *X_fifo,
         const bfp_complex_s32_t *T,
         unsigned num_x_channels,

@@ -4,7 +4,7 @@
 #define __DUMP_H_HAT_H__
 
 /*
- * This is designed for non-real time dumping of the H_hat filter
+ * This is designed for non-real time dumping of the h_hat filter
  * for reconstruction in python.
  */
 void aec_dump_H_hat(aec_filter_state_t *state, file_t *file_handle);

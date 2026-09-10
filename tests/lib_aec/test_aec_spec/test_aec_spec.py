@@ -46,7 +46,7 @@ aec_xe = HERE / "bin" / "test_aec_spec.xe"
 dut_in_wav = "input.wav"
 dut_out_wav = "output.wav"
 runtime_args_file = "args.bin"
-dut_H_hat_file = "H_hat.bin"
+dut_H_hat_file = "h_hat.bin"
 
 
 def run_aec_xc(audio_in, audio_ref, audio_out, adapt=-1, h_hat_dump=None, target="xs3a"):

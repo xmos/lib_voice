@@ -78,9 +78,9 @@ typedef struct {
 
     /** Fast ratio threshold to detect instability. */
     float_s32_t fast_ratio_threshold;
-    /** Setting of H_hat leakage which gets set if vnr detects high voice probability. */
+    /** Setting of h_hat leakage which gets set if vnr detects high voice probability. */
     float_s32_t high_input_vnr_hold_leakage_alpha;
-    /** Setting of H_hat leakage which gets set if fast ratio exceeds a threshold. */
+    /** Setting of h_hat leakage which gets set if fast ratio exceeds a threshold. */
     float_s32_t instability_recovery_leakage_alpha;
 
     /** VNR input threshold which decides whether to hold or adapt the filter. */
@@ -229,7 +229,7 @@ typedef struct {
 
     /** Mu value used for controlling adaption rate. */
     float_s32_t mu[IC_Y_CHANNELS][IC_X_CHANNELS];
-    /** Alpha used for leaking away H_hat, allowing filter to slowly forget adaption. */
+    /** Alpha used for leaking away h_hat, allowing filter to slowly forget adaption. */
     float_s32_t leakage_alpha;
     /** Used to keep track of peak X energy. */
     float_s32_t max_X_energy[IC_X_CHANNELS]; 

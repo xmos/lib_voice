@@ -9,25 +9,25 @@
      - MIPS use (XS3A)
    * - ADEC
      - 1.17
-     - 1.38
+     - 0.75
    * - AEC_ALT_ARCH_1THREAD
      - 38.29
-     - 42.42
+     - 50.13
    * - AEC_ALT_ARCH_2THREADS
      - 27.5
-     - 30.57
+     - 36.26
    * - AEC_STD_ARCH_1THREAD
      - 56.91
-     - 62.7
+     - 73.82
    * - AEC_STD_ARCH_2THREADS
      - 36.73
-     - 40.74
+     - 47.9
    * - AGC
      - 3.61
-     - 6.19
+     - 6.18
    * - IC
      - 11.75
-     - 13.05
+     - 13.06
    * - NS
      - 5.36
      - 6.15

@@ -110,7 +110,7 @@ typedef struct {
     float_s32_t delta_adaption_force_on;
     /** Lower limit of delta computed using fractional regularisation.*/
     float_s32_t delta_min;
-    /** coefficient index used to track H_hat index when sending H_hat values over the host control interface.*/
+    /** coefficient index used to track h_hat index when sending h_hat values over the host control interface.*/
     uint32_t coeff_index;
     /** alpha used while calculating y_ema_energy, x_ema_energy and error_ema_energy.*/
     uq2_30 ema_alpha_q30;
@@ -279,21 +279,31 @@ typedef struct {
      * AEC_FD_FRAME_LENGTH, complex 32bit array per y channel.*/
     bfp_complex_s32_t Error[AEC_MAX_Y_CHANNELS];
 
-    /** BFP array pointing to the adaptive filter spectrum.
-     * The filter spectrum is stored as a num_y_channels x total_phases_across_all_x_channels array where each H_hat[i][j]
-     * entry points to the spectrum of a single phase.
+    /** BFP array pointing to the time domain adaptive filter.
+     * The filter is stored as a num_y_channels x total_phases_across_all_x_channels array where each h_hat[i][j]
+     * entry points to a single time domain filter phase. The filter is stored in the time domain (rather than the
+     * frequency domain) to save memory; it is transformed to the frequency domain on the fly during the Error and
+     * Y_hat calculation.
      *
      * Number of phases in the filter refers to its tail length. A filter with more phases would be able to model a longer
      * echo thereby causing better echo cancellation.
      *
      * For example, for a 2 y-channels, 3 x-channels, 10 phases per x channel configuration,
-     * the filter spectrum phases are stored in a 2x30 array. For a given y channel, say y channel 0, H_hat[0][0] to
-     * H_hat[0][9] points to 10 phases of H_hat<SUB>y0x0</SUB>, H_hat[0][10] to H_hat[0][19] points to 10 phases of
-     * H_hat<SUB>y0x1</SUB> and H_hat[0][20] to H_hat[0][29] points to 10 phases of H_hat<SUB>y0x2</SUB>.
+     * the filter phases are stored in a 2x30 array. For a given y channel, say y channel 0, h_hat[0][0] to
+     * h_hat[0][9] points to 10 phases of h_hat<SUB>y0x0</SUB>, h_hat[0][10] to h_hat[0][19] points to 10 phases of
+     * h_hat<SUB>y0x1</SUB> and h_hat[0][20] to h_hat[0][29] points to 10 phases of h_hat<SUB>y0x2</SUB>.
      *
-     * Each filter phase data which is pointed to by H_hat[i][j].data is stored as AEC_FD_FRAME_LENGTH complex 32bit
-     * array.*/
-    bfp_complex_s32_t H_hat[AEC_MAX_Y_CHANNELS][AEC_LIB_MAX_PHASES];
+     * Each filter phase data which is pointed to by h_hat[i][j].data is stored as an AEC_FRAME_ADVANCE length real 32bit
+     * array.
+     *
+     * The taps within a phase are not in time order. They are permuted into the bit-reversed index order the FFT
+     * works in, which lets both of the per-phase transforms the AEC does every frame - the inverse transform of the
+     * delta update and the forward transform used for Y_hat - skip their index bit-reversal pass. The permutation
+     * happens to leave exactly the AEC_FRAME_ADVANCE taps of the filter, so it costs no extra memory, and the taps it
+     * leaves no room for are exactly the ones the gradient constraint zeroes. Use aec_h_hat_tap_index() to map a tap's
+     * position in the impulse response to its position in the stored phase; anything order independent, such as the
+     * per-phase energy the delay estimator uses, can read the stored data directly.*/
+    bfp_s32_t h_hat[AEC_MAX_Y_CHANNELS][AEC_LIB_MAX_PHASES];
 
     /** BFP array pointing to all phases of reference input spectrum across all x channels. Here, the reference input
      * spectrum is saved in a 1 dimensional array of phases, with x channel 0 phases followed by x channel 1 phases and

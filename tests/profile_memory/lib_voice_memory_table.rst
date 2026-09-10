@@ -7,16 +7,16 @@
    * - Component
      - Memory use (bytes, XS3A)
    * - ADEC
-     - 8160
+     - 7096
    * - AEC_ALT_ARCH
-     - 240400
+     - 191856
    * - AEC_STD_ARCH
-     - 277808
+     - 207296
    * - AGC
      - 9472
    * - IC
-     - 136200
+     - 128056
    * - NS
-     - 35192
+     - 31096
    * - VNR
-     - 59704
+     - 55608

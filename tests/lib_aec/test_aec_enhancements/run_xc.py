@@ -18,7 +18,7 @@ out_dir = parser.get("Folders", "out_dir")
 
 adapt_mode_dict = {'AEC_ADAPTION_AUTO':0, 'AEC_ADAPTION_FORCE_ON':1, 'AEC_ADAPTION_FORCE_OFF': 2}
 
-dut_H_hat_file = "H_hat.bin"
+dut_H_hat_file = "h_hat.bin"
 runtime_args_file = "args.bin"
 AEC_MAX_Y_CHANNELS = int(parser.get("Config", "y_channel_count"))
 AEC_MAX_X_CHANNELS = int(parser.get("Config", "x_channel_count"))

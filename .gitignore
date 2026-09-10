@@ -42,3 +42,14 @@ test/**/*.png
 **/*.swp
 tests/lib_aec/test_aec_spec/audio_in
 tests/profile_memory/worker_logs
+tests/profile_mips/worker_logs
+*.log
+tests/lib_adec/test_adec/*.png
+tests/lib_ic/test_bad_state/*.wav
+tests/lib_aec/test_aec_enhancements/audio_in
+tests/lib_aec/test_aec_enhancements/filter_out
+tests/lib_aec/test_aec_enhancements/audio_out
+tests/lib_aec/test_aec_spec/audio_out
+tests/lib_aec/test_aec_spec/results
+**/*put_wavs
+**/*put_files

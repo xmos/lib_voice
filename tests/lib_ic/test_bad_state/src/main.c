@@ -27,7 +27,7 @@ void test_bad_state(const char *conf_file_name, const char *input_file_name, con
 
     // Read the data to initialise filter
     int num_words_H_py, adapt_mode;
-    // Num words to accomodate H_hat data
+    // Num words to accomodate h_hat data
     int num_words_H_c = IC_Y_CHANNELS * IC_FD_FRAME_LENGTH * IC_FILTER_PHASES * 2;
     file_read(&conf_file, &num_words_H_py, sizeof(int32_t));
     assert((num_words_H_py == num_words_H_c) && "num_words_h does not match with python");

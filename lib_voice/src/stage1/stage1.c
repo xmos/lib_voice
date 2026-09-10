@@ -14,7 +14,7 @@ static inline void get_delayed_frame(
         int32_t (*input_x_data)[AEC_FRAME_ADVANCE],
         delay_buf_state_t *delay_state)
 {
-    int num_channels = (delay_state->delay_samples) > 0 ? AEC_MAX_Y_CHANNELS : AEC_MAX_X_CHANNELS;
+    int num_channels = (delay_state->delay_samples) > 0 ? STAGE1_MAX_Y_CHANNELS : AEC_MAX_X_CHANNELS;
     if (delay_state->delay_samples >= 0) {/** Requested Mic delay +ve => delay mic*/
         for(int ch=0; ch<num_channels; ch++) {
             for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
@@ -75,13 +75,13 @@ static void alt_arch_rewrite_output(int32_t (*output)[AEC_FRAME_ADVANCE], const 
     // assumes that stage 1 has this knowledge and gets to make decisions about enabling/disabling downstream stages.
 
     /** If we've processed fewer channels than the max present in the pipeline*/
-    if(y_channels < AEC_MAX_Y_CHANNELS) {
+    if(y_channels < STAGE1_MAX_Y_CHANNELS) {
         // If AEC is not bypassed, copy AEC output to the other channels that haven't been processed by AEC. This is the alt arch situation
         // where 1 channel AEC is enabled and IC is bypassed. We're assuming here that since AEC is enabled, IC would be disabled and so the
         // 2 channels of duplicate output would not be processed through IC.
         if(!aec_bypass)
         {
-            for(int ch=y_channels; ch<AEC_MAX_Y_CHANNELS; ch++)
+            for(int ch=y_channels; ch<STAGE1_MAX_Y_CHANNELS; ch++)
             {
                 memcpy(&output[ch][0], &output[y_channels - 1][0], AEC_FRAME_ADVANCE*sizeof(int32_t));
             }
@@ -91,7 +91,7 @@ static void alt_arch_rewrite_output(int32_t (*output)[AEC_FRAME_ADVANCE], const 
             // IC is enabled. Since AEC has only bypassed one channel and IC would need both channels with their original phase relationship
             // preserved, we overwrite the AEC output with mic input. Providing 1 channel of AEC bypassed output and routing the other mic channel
             // unmodified to IC doesn't work for IC.
-            for(int ch=0; ch<AEC_MAX_Y_CHANNELS; ch++) {
+            for(int ch=0; ch<STAGE1_MAX_Y_CHANNELS; ch++) {
                 memcpy(&output[ch][0], &mic_input[ch][0], AEC_FRAME_ADVANCE*sizeof(int32_t));// AEC cannot process the frame in-place because of this
             }
         }
@@ -131,7 +131,7 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
     adec_input_t adec_in;
     adec_estimate_delay(
             &adec_in.from_de,
-            state->aec_state.main_state.H_hat[0],
+            state->aec_state.main_state.h_hat[0],
             state->aec_state.main_state.num_phases
             );
 
@@ -159,7 +159,7 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
     if(adec_output.delay_change_request_flag == 1){
         // Update delay_buffer delay_samples with mic delay requested by adec
         update_delay_samples(&state->delay_state, adec_output.requested_mic_delay_samples);
-        for(int ch=0; ch<AEC_MAX_Y_CHANNELS; ch++) {
+        for(int ch=0; ch<STAGE1_MAX_Y_CHANNELS; ch++) {
             reset_partial_delay_buffer(&state->delay_state, ch);
         }
     }
@@ -170,7 +170,7 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
 
     // Overwrite output with mic input if delay estimation enabled
     if (state->delay_estimator_enabled) {
-        for(int ch=0; ch<AEC_MAX_Y_CHANNELS; ch++) {
+        for(int ch=0; ch<STAGE1_MAX_Y_CHANNELS; ch++) {
             memcpy(&output_frame[ch][0], &input_y[ch][0], AEC_FRAME_ADVANCE*sizeof(int32_t)); // AEC cannot process the frame in-place because of this
         }
     }

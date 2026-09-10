@@ -507,7 +507,7 @@ void aec_process_frame(
     /* At this point we're ready to check how well the filters are performing and update them if needed.
      *
      * main_state->shared_state->shadow_filter_params are updated to indicate the current state of filter comparison algorithm.
-     * main_state->H_hat, main_state->Error, shadow_state->H_hat, shadow_state->Error are optionally updated depending on the update needed.
+     * main_state->h_hat, main_state->Error, shadow_state->h_hat, shadow_state->Error are optionally updated depending on the update needed.
      *
      * After the filter comparison and update step, the adaption step size mu is calculated for main and shadow filter.
      * main_state->mu and shadow_state->mu are updated.
@@ -528,7 +528,7 @@ void aec_process_frame(
         main_state, shadow_state, tdist->passes_for_2_tasks_and_channels, num_x_channels
     );
 
-    //Adapt H_hat
+    //Adapt h_hat
     for(int ych=0; ych<num_y_channels; ych++) {
         // Compute T values.
         // T is a function of state->mu, state->Error and state->inv_X_energy.
@@ -541,7 +541,7 @@ void aec_process_frame(
         );
 
         // Update filters
-        // main_state->H_hat and shadow_state->H_hat are updated.
+        // main_state->h_hat and shadow_state->h_hat are updated.
         PAR_THREADS_PJOBS(
             filter_adapt_task,
             tdist->par_2_tasks,

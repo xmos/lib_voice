@@ -63,12 +63,12 @@ void adec_process_frame(
  * measured delay.
  *
  * @param[out] de_state Delay estimator output structure
- * @param[in] H_hat bfp_complex_s32_t array storing the AEC filter spectrum
+ * @param[in] h_hat bfp_s32_t array storing the time domain AEC filter
  * @param[in] Number of phases in the AEC filter
  *
  * @ingroup adec_func
  */
 void adec_estimate_delay (
         de_output_t *de_output,
-        const bfp_complex_s32_t* H_hat,
+        const bfp_s32_t* h_hat,
         unsigned num_phases);

@@ -63,8 +63,8 @@ typedef struct {
     double overall_Yhat[AEC_MAX_Y_CHANNELS];
 
     //common
-    complex_double_t H_hat[TEST_NUM_Y][TEST_NUM_X][TEST_MAIN_PHASES][NUM_BINS];
-    complex_double_t H_hat_shadow[TEST_NUM_Y][TEST_NUM_X][TEST_SHADOW_PHASES][NUM_BINS];
+    double h_hat[TEST_NUM_Y][TEST_NUM_X][TEST_MAIN_PHASES][AEC_FRAME_ADVANCE];
+    double H_hat_shadow[TEST_NUM_Y][TEST_NUM_X][TEST_SHADOW_PHASES][AEC_FRAME_ADVANCE];
     complex_double_t Y[TEST_NUM_Y][NUM_BINS];
     complex_double_t Error[TEST_NUM_Y][NUM_BINS];
     complex_double_t Error_shadow[TEST_NUM_Y][NUM_BINS];
@@ -158,9 +158,8 @@ static void init_params_fp(
 void reset_shadow_filter_fp(shadow_filt_params_fp_t *params, int y_ch) {
     for(int ch=0; ch<params->x_channels; ch++) {
         for(int ph=0; ph<params->shadow_phases; ph++) {
-            for(int bin=0; bin<NUM_BINS; bin++) {
-                params->H_hat_shadow[y_ch][ch][ph][bin].re = 0.0;
-                params->H_hat_shadow[y_ch][ch][ph][bin].im = 0.0;
+            for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                params->H_hat_shadow[y_ch][ch][ph][i] = 0.0;
             }
         }
     }
@@ -170,9 +169,8 @@ void reset_main_filter_fp(shadow_filt_params_fp_t *params, int y_ch) {
     printf("reset_main_filter_fp. ych %d\n",y_ch);
     for(int ch=0; ch<params->x_channels; ch++) {
         for(int ph=0; ph<params->main_phases; ph++) {
-            for(int bin=0; bin<NUM_BINS; bin++) {
-                params->H_hat[y_ch][ch][ph][bin].re = 0.0;
-                params->H_hat[y_ch][ch][ph][bin].im = 0.0;
+            for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                params->h_hat[y_ch][ch][ph][i] = 0.0;
             }
         }
     }
@@ -181,15 +179,13 @@ void reset_main_filter_fp(shadow_filt_params_fp_t *params, int y_ch) {
 void shadow_to_main_filter_copy_fp(shadow_filt_params_fp_t *params, int y_ch) {
     for(int ch=0; ch<params->x_channels; ch++) {
         for(int ph=0; ph<params->shadow_phases; ph++) {
-            for(int bin=0; bin<NUM_BINS; bin++) {
-                params->H_hat[y_ch][ch][ph][bin].re = params->H_hat_shadow[y_ch][ch][ph][bin].re;
-                params->H_hat[y_ch][ch][ph][bin].im = params->H_hat_shadow[y_ch][ch][ph][bin].im;
+            for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                params->h_hat[y_ch][ch][ph][i] = params->H_hat_shadow[y_ch][ch][ph][i];
             }
         }
         for(int ph=params->shadow_phases; ph<params->main_phases; ph++) {
-            for(int bin=0; bin<NUM_BINS; bin++) {
-                params->H_hat[y_ch][ch][ph][bin].re = 0.0;
-                params->H_hat[y_ch][ch][ph][bin].im = 0.0;
+            for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                params->h_hat[y_ch][ch][ph][i] = 0.0;
             }
         }
     }
@@ -198,9 +194,8 @@ void shadow_to_main_filter_copy_fp(shadow_filt_params_fp_t *params, int y_ch) {
 void main_to_shadow_filter_copy_fp(shadow_filt_params_fp_t *params, int y_ch) {
     for(int ch=0; ch<params->x_channels; ch++) {
         for(int ph=0; ph<params->shadow_phases; ph++) {
-            for(int bin=0; bin<NUM_BINS; bin++) {
-                params->H_hat_shadow[y_ch][ch][ph][bin].re = params->H_hat[y_ch][ch][ph][bin].re;
-                params->H_hat_shadow[y_ch][ch][ph][bin].im = params->H_hat[y_ch][ch][ph][bin].im;
+            for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                params->H_hat_shadow[y_ch][ch][ph][i] = params->h_hat[y_ch][ch][ph][i];
             }
         }
     }
@@ -609,7 +604,7 @@ void test_compare_filters_and_calc_mu() {
     //Output
     //Error
     //Error_shadow
-    //H_hat
+    //h_hat
     //H_hat_shadow
     aec_state_t aec_state;
 
@@ -664,29 +659,25 @@ void test_compare_filters_and_calc_mu() {
         //generate input
 
         for(int ych=0; ych<num_y_channels; ych++) {
-            //H_hat
+            //h_hat (time domain)
             for(int ph=0; ph<num_x_channels*aec_state.main_state.num_phases; ph++) {
                 int xch = ph/aec_state.main_state.num_phases;
                 int ph_xch = (aec_state.main_state.num_phases == 1) ? 0 : ph % aec_state.main_state.num_phases;
-                aec_state.main_state.H_hat[ych][ph].exp = pseudo_rand_int(&seed, -31, 32);
-                aec_state.main_state.H_hat[ych][ph].hr = pseudo_rand_uint32(&seed) % 3;
-                for(int i=0; i<NUM_BINS; i++) {
-                    aec_state.main_state.H_hat[ych][ph].data[i].re = pseudo_rand_int32(&seed) >> aec_state.main_state.H_hat[ych][ph].hr;
-                    aec_state.main_state.H_hat[ych][ph].data[i].im = pseudo_rand_int32(&seed) >> aec_state.main_state.H_hat[ych][ph].hr;
-                    params_fp->H_hat[ych][xch][ph_xch][i].re = ldexp(aec_state.main_state.H_hat[ych][ph].data[i].re, aec_state.main_state.H_hat[ych][ph].exp);
-                    params_fp->H_hat[ych][xch][ph_xch][i].im = ldexp(aec_state.main_state.H_hat[ych][ph].data[i].im, aec_state.main_state.H_hat[ych][ph].exp);
+                aec_state.main_state.h_hat[ych][ph].exp = pseudo_rand_int(&seed, -31, 32);
+                aec_state.main_state.h_hat[ych][ph].hr = pseudo_rand_uint32(&seed) % 3;
+                for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                    aec_state.main_state.h_hat[ych][ph].data[i] = pseudo_rand_int32(&seed) >> aec_state.main_state.h_hat[ych][ph].hr;
+                    params_fp->h_hat[ych][xch][ph_xch][i] = ldexp(aec_state.main_state.h_hat[ych][ph].data[i], aec_state.main_state.h_hat[ych][ph].exp);
                 }
             }
             for(int ph=0; ph<num_x_channels*aec_state.shadow_state.num_phases; ph++) {
                 int xch = ph/aec_state.shadow_state.num_phases;
                 int ph_xch = (aec_state.shadow_state.num_phases == 1) ? 0 : ph % aec_state.shadow_state.num_phases; //phase within the given xch
-                aec_state.shadow_state.H_hat[ych][ph].exp = pseudo_rand_int(&seed, -31, 32);
-                aec_state.shadow_state.H_hat[ych][ph].hr = pseudo_rand_uint32(&seed) % 3;
-                for(int i=0; i<NUM_BINS; i++) {
-                    aec_state.shadow_state.H_hat[ych][ph].data[i].re = pseudo_rand_int32(&seed) >> aec_state.shadow_state.H_hat[ych][ph].hr;
-                    aec_state.shadow_state.H_hat[ych][ph].data[i].im = pseudo_rand_int32(&seed) >> aec_state.shadow_state.H_hat[ych][ph].hr;
-                    params_fp->H_hat_shadow[ych][xch][ph_xch][i].re = ldexp(aec_state.shadow_state.H_hat[ych][ph].data[i].re, aec_state.shadow_state.H_hat[ych][ph].exp);
-                    params_fp->H_hat_shadow[ych][xch][ph_xch][i].im = ldexp(aec_state.shadow_state.H_hat[ych][ph].data[i].im, aec_state.shadow_state.H_hat[ych][ph].exp);
+                aec_state.shadow_state.h_hat[ych][ph].exp = pseudo_rand_int(&seed, -31, 32);
+                aec_state.shadow_state.h_hat[ych][ph].hr = pseudo_rand_uint32(&seed) % 3;
+                for(int i=0; i<AEC_FRAME_ADVANCE; i++) {
+                    aec_state.shadow_state.h_hat[ych][ph].data[i] = pseudo_rand_int32(&seed) >> aec_state.shadow_state.h_hat[ych][ph].hr;
+                    params_fp->H_hat_shadow[ych][xch][ph_xch][i] = ldexp(aec_state.shadow_state.h_hat[ych][ph].data[i], aec_state.shadow_state.h_hat[ych][ph].exp);
                 }
             }
             //Error, Error_shadow, Y
@@ -848,15 +839,15 @@ void test_compare_filters_and_calc_mu() {
             //compare Error_Shadow
             if(diff_Error_shadow > 0) {printf("iter %d. diff_Error_shadow %d too large\n",iter, diff_Error_shadow); assert(0);}
 
-            //Compare H_hat and H_hat_shadow
+            //Compare h_hat and H_hat_shadow
             for(int xch=0; xch<num_x_channels; xch++) {
                 for(int ph=0; ph<aec_state.main_state.num_phases; ph++) {
-                    unsigned diff_H_hat = vector_int32_maxdiff((int32_t*)&aec_state.main_state.H_hat[ych][xch*aec_state.main_state.num_phases + ph].data[0], aec_state.main_state.H_hat[ych][xch*aec_state.main_state.num_phases + ph].exp, (double*)&params_fp->H_hat[ych][xch][ph][0], 0, 2*NUM_BINS);
+                    unsigned diff_H_hat = vector_int32_maxdiff((int32_t*)&aec_state.main_state.h_hat[ych][xch*aec_state.main_state.num_phases + ph].data[0], aec_state.main_state.h_hat[ych][xch*aec_state.main_state.num_phases + ph].exp, (double*)&params_fp->h_hat[ych][xch][ph][0], 0, AEC_FRAME_ADVANCE);
                     if(diff_H_hat > 0){printf("iter %d, ych %d, xch %d, ph %d, shadow_flag %d. diff_H_hat %d too large\n",iter, ych, xch, ph, params_fp->shadow_flag[ych], diff_H_hat); assert(0);}
                 }
 
                 for(int ph=0; ph<aec_state.shadow_state.num_phases; ph++) {
-                    unsigned diff_H_hat_shadow = vector_int32_maxdiff((int32_t*)&aec_state.shadow_state.H_hat[ych][xch*aec_state.shadow_state.num_phases + ph].data[0], aec_state.shadow_state.H_hat[ych][xch*aec_state.shadow_state.num_phases + ph].exp, (double*)&params_fp->H_hat_shadow[ych][xch][ph][0], 0, 2*NUM_BINS);
+                    unsigned diff_H_hat_shadow = vector_int32_maxdiff((int32_t*)&aec_state.shadow_state.h_hat[ych][xch*aec_state.shadow_state.num_phases + ph].data[0], aec_state.shadow_state.h_hat[ych][xch*aec_state.shadow_state.num_phases + ph].exp, (double*)&params_fp->H_hat_shadow[ych][xch][ph][0], 0, AEC_FRAME_ADVANCE);
                     if(diff_H_hat_shadow > 0){printf("iter %d, ych %d, xch %d, ph %d, shadow_flag %d. diff_H_hat_shadow %d too large\n",iter, ych, xch, ph, params_fp->shadow_flag[ych], diff_H_hat_shadow); assert(0);}
                 }
             }
