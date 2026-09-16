@@ -64,14 +64,23 @@ int32_t ic_init(ic_state_t *state){
     // H_hat
     for(unsigned ch=0; ch<IC_Y_CHANNELS; ch++) {
         for(unsigned ph=0; ph<(IC_X_CHANNELS * IC_FILTER_PHASES); ph++) {
+#if AEC_COEFF_S16
+            bfp_complex_s32_init(&state->H_hat_bfp[ch][ph], (complex_s32_t *)state->H_hat[ch][ph].real, zero_exp, IC_FD_FRAME_LENGTH, 0);
+#else
             bfp_complex_s32_init(&state->H_hat_bfp[ch][ph], state->H_hat[ch][ph], zero_exp, IC_FD_FRAME_LENGTH, 0);
+#endif
         }
     }
     // X_fifo
     for(unsigned ch=0; ch<IC_X_CHANNELS; ch++) {
         for(unsigned ph=0; ph<IC_FILTER_PHASES; ph++) {
+#if AEC_COEFF_S16
+            bfp_complex_s32_init(&state->X_fifo_bfp[ch][ph], (complex_s32_t *)state->X_fifo[ch][ph].real, zero_exp, IC_FD_FRAME_LENGTH, 0);
+            bfp_complex_s32_init(&state->X_fifo_1d_bfp[ch * IC_FILTER_PHASES + ph], (complex_s32_t *)state->X_fifo[ch][ph].real, zero_exp, IC_FD_FRAME_LENGTH, 0);
+#else
             bfp_complex_s32_init(&state->X_fifo_bfp[ch][ph], state->X_fifo[ch][ph], zero_exp, IC_FD_FRAME_LENGTH, 0);
             bfp_complex_s32_init(&state->X_fifo_1d_bfp[ch * IC_FILTER_PHASES + ph], state->X_fifo[ch][ph], zero_exp, IC_FD_FRAME_LENGTH, 0);
+#endif
         }
     }
     // Initialise Error

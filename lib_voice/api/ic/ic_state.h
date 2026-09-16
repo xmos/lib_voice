@@ -4,6 +4,7 @@
 #define IC_STATE_H
 
 #include "ic_defines.h"
+#include "aec_defines.h"
 
 /**
  * @defgroup ic_state   IC Data Structures
@@ -193,14 +194,22 @@ typedef struct {
     /** BFP array pointing to the frequency domain estimate of transfer function. */
     bfp_complex_s32_t H_hat_bfp[IC_Y_CHANNELS][IC_X_CHANNELS*IC_FILTER_PHASES];
     /** Storage for H_hat mantissas. */
+#if AEC_COEFF_S16
+    aec_phase_s16_t DWORD_ALIGNED H_hat[IC_Y_CHANNELS][IC_FILTER_PHASES*IC_X_CHANNELS];
+#else
     complex_s32_t DWORD_ALIGNED H_hat[IC_Y_CHANNELS][IC_FILTER_PHASES*IC_X_CHANNELS][IC_FD_FRAME_LENGTH];
+#endif
 
     /** BFP array pointing to the frequency domain X input history used for calculating normalisation. */
     bfp_complex_s32_t X_fifo_bfp[IC_X_CHANNELS][IC_FILTER_PHASES];
     /** 1D alias of the frequency domain X input history used for calculating normalisation. */
     bfp_complex_s32_t X_fifo_1d_bfp[IC_X_CHANNELS*IC_FILTER_PHASES];
     /** Storage for X_fifo mantissas. */
+#if AEC_COEFF_S16
+    aec_phase_s16_t DWORD_ALIGNED X_fifo[IC_X_CHANNELS][IC_FILTER_PHASES];
+#else
     complex_s32_t DWORD_ALIGNED X_fifo[IC_X_CHANNELS][IC_FILTER_PHASES][IC_FD_FRAME_LENGTH];
+#endif
 
     /** BFP array pointing to the frequency domain T used for adapting the filter coefficients (H). 
      * Note there is no associated storage because we re-use the x input array as a memory optimisation. */

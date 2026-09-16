@@ -56,14 +56,22 @@ void aec_priv_main_init(
     for(unsigned ch=0; ch<num_y_channels; ch++) {
         for(unsigned ph=0; ph<(num_x_channels * num_phases); ph++) {
             bfp_complex_s32_init(&state->H_hat[ch][ph], (complex_s32_t*)available_mem_start, AEC_ZEROVAL_EXP, AEC_FD_FRAME_LENGTH, 0);
+#if AEC_COEFF_S16
+            available_mem_start += sizeof(aec_phase_s16_t);
+#else
             available_mem_start += (AEC_FD_FRAME_LENGTH*sizeof(complex_s32_t));
+#endif
         }
     }
     //X_fifo
     for(unsigned ch=0; ch<num_x_channels; ch++) {
         for(unsigned ph=0; ph<num_phases; ph++) {
             bfp_complex_s32_init(&state->shared_state->X_fifo[ch][ph], (complex_s32_t*)available_mem_start, AEC_ZEROVAL_EXP, AEC_FD_FRAME_LENGTH, 0);
+#if AEC_COEFF_S16
+            available_mem_start += sizeof(aec_phase_s16_t);
+#else
             available_mem_start += (AEC_FD_FRAME_LENGTH*sizeof(complex_s32_t));
+#endif
         }
     }
     //initialise Error
@@ -158,7 +166,11 @@ void aec_priv_shadow_init(
     for(unsigned ch=0; ch<num_y_channels; ch++) {
         for(unsigned ph=0; ph<(num_x_channels * num_phases); ph++) {
             bfp_complex_s32_init(&state->H_hat[ch][ph], (complex_s32_t*)available_mem_start, AEC_ZEROVAL_EXP, AEC_FD_FRAME_LENGTH, 0);
+#if AEC_COEFF_S16
+            available_mem_start += sizeof(aec_phase_s16_t);
+#else
             available_mem_start += (AEC_FD_FRAME_LENGTH*sizeof(complex_s32_t));
+#endif
         }
     }
     //initialise Error
@@ -291,7 +303,11 @@ void aec_priv_compare_filters(
         if(float_s32_gt(shadow_state->overall_Error[ch], shared_state->overall_Y[ch]) && shadow_params->shadow_reset_count[ch] >= 0)
         {
             shadow_params->shadow_flag[ch] = ERROR;
+#if AEC_COEFF_S16
+            aec_priv_reset_filter_packed(shadow_state->H_hat[ch], shadow_state->shared_state->num_x_channels, shadow_state->num_phases);
+#else
             aec_priv_reset_filter(shadow_state->H_hat[ch], shadow_state->shared_state->num_x_channels, shadow_state->num_phases);
+#endif
             //Y -> shadow Error
             aec_priv_bfp_complex_s32_copy(&shadow_state->Error[ch], &shared_state->Y[ch]);
             shadow_state->overall_Error[ch] = shared_state->overall_Y[ch];
@@ -308,7 +324,11 @@ void aec_priv_compare_filters(
             //shadow Error -> Error
             aec_priv_bfp_complex_s32_copy(&main_state->Error[ch], &shadow_state->Error[ch]);
             //shadow filter -> main filter
+#if AEC_COEFF_S16
+            aec_priv_copy_filter_packed(main_state->H_hat[ch], shadow_state->H_hat[ch], main_state->shared_state->num_x_channels, main_state->num_phases, shadow_state->num_phases);
+#else
             aec_priv_copy_filter(main_state->H_hat[ch], shadow_state->H_hat[ch], main_state->shared_state->num_x_channels, main_state->num_phases, shadow_state->num_phases);
+#endif
         }
         else if(float_s32_gte(shadow_sigma_thresh_x_Ov_Error, shadow_state->overall_Error[ch]))
         {
@@ -331,7 +351,11 @@ void aec_priv_compare_filters(
             if(shadow_params->shadow_reset_count[ch] > shadow_conf->shadow_zero_thresh) {
                 //# if shadow filter has been reset several times in a row, reset to zeros
                 shadow_params->shadow_flag[ch] = ZERO;
+#if AEC_COEFF_S16
+                aec_priv_reset_filter_packed(shadow_state->H_hat[ch], shadow_state->shared_state->num_x_channels, shadow_state->num_phases);
+#else
                 aec_priv_reset_filter(shadow_state->H_hat[ch], shadow_state->shared_state->num_x_channels, shadow_state->num_phases);
+#endif
                 aec_priv_bfp_complex_s32_copy(&shadow_state->Error[ch], &shared_state->Y[ch]);
                 //# give the zeroed filter time to reconverge (or redeconverge)
                 shadow_params->shadow_reset_count[ch] = -(int)shadow_conf->shadow_reset_timer;
@@ -339,7 +363,11 @@ void aec_priv_compare_filters(
             else {
                 //debug_printf("Frame %d, main -> shadow filter copy.\n",frame_counter);
                 //# otherwise copy the main filter to the shadow filter
+#if AEC_COEFF_S16
+                aec_priv_copy_filter_packed(shadow_state->H_hat[ch], main_state->H_hat[ch], main_state->shared_state->num_x_channels, shadow_state->num_phases, main_state->num_phases);
+#else
                 aec_priv_copy_filter(shadow_state->H_hat[ch], main_state->H_hat[ch], main_state->shared_state->num_x_channels, shadow_state->num_phases, main_state->num_phases);
+#endif
                 aec_priv_bfp_complex_s32_copy(&shadow_state->Error[ch], &main_state->Error[ch]);
                 shadow_params->shadow_flag[ch] = RESET;
             }
@@ -1082,3 +1110,211 @@ void aec_priv_calc_delta(
         *delta = conf->aec_core_conf.delta_adaption_force_on;
     }
 }
+
+#if AEC_COEFF_S16
+static void aec_coeff_view_s16(bfp_complex_s16_t *v, const bfp_complex_s32_t *packed)
+{
+    int16_t *re = (int16_t *)packed->data;
+    bfp_complex_s16_init(v, re, re + AEC_PHASE_S16_STRIDE, packed->exp, packed->length, 0);
+    v->hr = packed->hr;
+}
+
+void aec_coeff_unpack_phase(bfp_complex_s32_t *dst_s32, const bfp_complex_s32_t *packed)
+{
+    bfp_complex_s16_t v;
+    aec_coeff_view_s16(&v, packed);
+    bfp_complex_s16_to_bfp_complex_s32(dst_s32, &v);
+}
+
+void aec_coeff_pack_phase(bfp_complex_s32_t *packed, const bfp_complex_s32_t *src_s32)
+{
+    bfp_complex_s16_t v;
+    aec_coeff_view_s16(&v, packed);
+    v.length = src_s32->length;
+    bfp_complex_s32_to_bfp_complex_s16(&v, src_s32);
+    packed->exp = v.exp;
+    packed->hr = v.hr;
+    packed->length = src_s32->length;
+}
+
+void aec_priv_reset_filter_packed(
+        bfp_complex_s32_t *H_hat,
+        unsigned num_x_channels,
+        unsigned num_phases)
+{
+    for(unsigned ph=0; ph<num_x_channels*num_phases; ph++) {
+        memset(H_hat[ph].data, 0, sizeof(aec_phase_s16_t));
+        H_hat[ph].exp = AEC_ZEROVAL_EXP;
+        H_hat[ph].hr = AEC_ZEROVAL_HR;
+    }
+}
+
+void aec_priv_copy_filter_packed(
+        bfp_complex_s32_t *H_hat_dst,
+        const bfp_complex_s32_t *H_hat_src,
+        unsigned num_x_channels,
+        unsigned num_dst_phases,
+        unsigned num_src_phases)
+{
+    uint32_t phases_to_copy = num_src_phases;
+    if(num_dst_phases < phases_to_copy) {
+        phases_to_copy = num_dst_phases;
+    }
+    for(uint32_t ch=0; ch<num_x_channels; ch++) {
+        uint32_t dst_ph_start_offset = ch * num_dst_phases;
+        uint32_t src_ph_start_offset = ch * num_src_phases;
+        for(uint32_t ph=0; ph<phases_to_copy; ph++) {
+            memcpy(H_hat_dst[dst_ph_start_offset + ph].data,
+                   H_hat_src[src_ph_start_offset + ph].data,
+                   sizeof(aec_phase_s16_t));
+            H_hat_dst[dst_ph_start_offset + ph].exp = H_hat_src[src_ph_start_offset + ph].exp;
+            H_hat_dst[dst_ph_start_offset + ph].hr = H_hat_src[src_ph_start_offset + ph].hr;
+            H_hat_dst[dst_ph_start_offset + ph].length = H_hat_src[src_ph_start_offset + ph].length;
+        }
+        for(uint32_t ph=num_src_phases; ph<num_dst_phases; ph++) {
+            memset(H_hat_dst[dst_ph_start_offset + ph].data, 0, sizeof(aec_phase_s16_t));
+            H_hat_dst[dst_ph_start_offset + ph].exp = AEC_ZEROVAL_EXP;
+            H_hat_dst[dst_ph_start_offset + ph].hr = AEC_ZEROVAL_HR;
+        }
+    }
+}
+
+void aec_priv_update_X_fifo_and_calc_sigmaXX_packed(
+        bfp_complex_s32_t *X_fifo,
+        bfp_s32_t *sigma_XX,
+        float_s32_t *sum_X_energy,
+        const bfp_complex_s32_t *X,
+        unsigned num_phases,
+        uint32_t sigma_xx_shift)
+{
+    bfp_complex_s32_t last_phase = X_fifo[num_phases-1];
+    for(int32_t n=(int32_t)num_phases-1; n>=1; n--) {
+        X_fifo[n] = X_fifo[n-1];
+    }
+    X_fifo[0] = last_phase;
+    aec_coeff_pack_phase(&X_fifo[0], X);
+
+    int32_t DWORD_ALIGNED sigma_scratch_mem[AEC_PROC_FRAME_LENGTH/2 + 1];
+    bfp_s32_t scratch;
+    bfp_s32_init(&scratch, sigma_scratch_mem, 0, AEC_FD_FRAME_LENGTH, 0);
+    bfp_complex_s32_squared_mag(&scratch, X);
+    float_s64_t sum = bfp_s32_sum(&scratch);
+    *sum_X_energy = float_s64_to_float_s32(sum);
+
+    scratch.exp -= sigma_xx_shift;
+
+    bfp_s32_t sigma_XX_scaled = *sigma_XX;
+    sigma_XX_scaled.exp -= sigma_xx_shift;
+    bfp_s32_sub(sigma_XX, sigma_XX, &sigma_XX_scaled);
+    bfp_s32_add(sigma_XX, sigma_XX, &scratch);
+}
+
+void aec_priv_update_total_X_energy_packed(
+        bfp_s32_t *X_energy,
+        float_s32_t *max_X_energy,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_complex_s32_t *X,
+        unsigned num_phases,
+        unsigned recalc_bin)
+{
+    complex_s32_t DWORD_ALIGNED phase_mem[AEC_FD_FRAME_LENGTH];
+    bfp_complex_s32_t oldest;
+    bfp_complex_s32_init(&oldest, phase_mem, 0, AEC_FD_FRAME_LENGTH, 0);
+    aec_coeff_unpack_phase(&oldest, &X_fifo[num_phases-1]);
+
+    int32_t DWORD_ALIGNED energy_scratch[AEC_PROC_FRAME_LENGTH/2 + 1];
+    bfp_s32_t scratch;
+    bfp_s32_init(&scratch, energy_scratch, 0, AEC_PROC_FRAME_LENGTH/2+1, 0);
+    bfp_complex_s32_squared_mag(&scratch, &oldest);
+    bfp_s32_sub(X_energy, X_energy, &scratch);
+    bfp_complex_s32_squared_mag(&scratch, X);
+    bfp_s32_add(X_energy, X_energy, &scratch);
+
+    {
+        int32_t sum_out_data = 0;
+        bfp_s32_t sum_out;
+        bfp_s32_init(&sum_out, &sum_out_data, AEC_ZEROVAL_EXP, 1, 0);
+        int32_t t = 0;
+        bfp_s32_t temp_out;
+        bfp_s32_init(&temp_out, &t, 0, 1, 0);
+        complex_s32_t bin;
+        bfp_complex_s32_t temp_in;
+        for(unsigned i=0; i<num_phases-1; i++) {
+            int16_t *re = (int16_t *)X_fifo[i].data;
+            int16_t *im = re + AEC_PHASE_S16_STRIDE;
+            bin.re = re[recalc_bin];
+            bin.im = im[recalc_bin];
+            bfp_complex_s32_init(&temp_in, &bin, X_fifo[i].exp, 1, 1);
+            temp_in.hr = (headroom_t)(X_fifo[i].hr + 16);
+            bfp_complex_s32_squared_mag(&temp_out, &temp_in);
+            bfp_s32_add(&sum_out, &sum_out, &temp_out);
+        }
+        bfp_complex_s32_init(&temp_in, &X->data[recalc_bin], X->exp, 1, 1);
+        bfp_complex_s32_squared_mag(&temp_out, &temp_in);
+        bfp_s32_add(&sum_out, &sum_out, &temp_out);
+        bfp_s32_use_exponent(&sum_out, X_energy->exp);
+        X_energy->data[recalc_bin] = sum_out.data[0];
+        if(sum_out.hr < X_energy->hr) {
+            X_energy->hr = sum_out.hr;
+        }
+    }
+
+    bfp_s32_rect(X_energy, X_energy);
+    *max_X_energy = bfp_s32_max(X_energy);
+    if(max_X_energy->mant == 0) {
+        X_energy->exp = AEC_ZEROVAL_EXP;
+    }
+}
+
+void aec_priv_calc_Error_and_Y_hat_packed(
+        bfp_complex_s32_t *Error,
+        bfp_complex_s32_t *Y_hat,
+        const bfp_complex_s32_t *Y,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_complex_s32_t *H_hat,
+        unsigned num_x_channels,
+        unsigned num_phases,
+        int32_t bypass_enabled)
+{
+    if(bypass_enabled) {
+        aec_priv_calc_Error_and_Y_hat(Error, Y_hat, Y, X_fifo, H_hat, num_x_channels, num_phases, bypass_enabled);
+        return;
+    }
+
+    complex_s32_t DWORD_ALIGNED H_mem[AEC_FD_FRAME_LENGTH];
+    complex_s32_t DWORD_ALIGNED X_mem[AEC_FD_FRAME_LENGTH];
+    bfp_complex_s32_t H32, X32;
+    bfp_complex_s32_init(&H32, H_mem, 0, AEC_FD_FRAME_LENGTH, 0);
+    bfp_complex_s32_init(&X32, X_mem, 0, AEC_FD_FRAME_LENGTH, 0);
+
+    uint32_t phases = num_x_channels * num_phases;
+    for(unsigned ph=0; ph<phases; ph++) {
+        aec_coeff_unpack_phase(&H32, &H_hat[ph]);
+        aec_coeff_unpack_phase(&X32, &X_fifo[ph]);
+        bfp_complex_s32_macc(Y_hat, &X32, &H32);
+    }
+    bfp_complex_s32_sub(Error, Y, Y_hat);
+}
+
+void aec_priv_filter_adapt_packed(
+        bfp_complex_s32_t *H_hat,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_complex_s32_t *T,
+        unsigned num_x_channels,
+        unsigned num_phases)
+{
+    complex_s32_t DWORD_ALIGNED H_mem[AEC_FD_FRAME_LENGTH];
+    complex_s32_t DWORD_ALIGNED X_mem[AEC_FD_FRAME_LENGTH];
+    bfp_complex_s32_t H32, X32;
+    bfp_complex_s32_init(&H32, H_mem, 0, AEC_FD_FRAME_LENGTH, 0);
+    bfp_complex_s32_init(&X32, X_mem, 0, AEC_FD_FRAME_LENGTH, 0);
+
+    unsigned phases = num_x_channels * num_phases;
+    for(unsigned ph=0; ph<phases; ph++) {
+        aec_coeff_unpack_phase(&H32, &H_hat[ph]);
+        aec_coeff_unpack_phase(&X32, &X_fifo[ph]);
+        aec_l2_adapt_plus_fft_gc(&H32, &X32, &T[ph/num_phases]);
+        aec_coeff_pack_phase(&H_hat[ph], &H32);
+    }
+}
+#endif

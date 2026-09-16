@@ -143,7 +143,11 @@ void ic_update_X_energy(
     bfp_s32_t *X_energy_ptr = &state->X_energy_bfp[ch];
     bfp_complex_s32_t *X_ptr = &state->X_bfp[ch];
     float_s32_t *max_X_energy_ptr = &state->max_X_energy[ch];
+#if AEC_COEFF_S16
+    aec_priv_update_total_X_energy_packed(X_energy_ptr, max_X_energy_ptr, &state->X_fifo_bfp[ch][0], X_ptr, IC_FILTER_PHASES, recalc_bin);
+#else
     aec_priv_update_total_X_energy(X_energy_ptr, max_X_energy_ptr, &state->X_fifo_bfp[ch][0], X_ptr, IC_FILTER_PHASES, recalc_bin);
+#endif
 }
 
 // Update X-fifo with the newest X data. Calculate sigmaXX
@@ -155,7 +159,11 @@ void ic_update_X_fifo_and_calc_sigmaXX(
     bfp_complex_s32_t *X_ptr = &state->X_bfp[ch];
     uint32_t sigma_xx_shift = state->config_params.sigma_xx_shift;
     float_s32_t *sum_X_energy_ptr = &state->sum_X_energy[ch];
+#if AEC_COEFF_S16
+    aec_priv_update_X_fifo_and_calc_sigmaXX_packed(&state->X_fifo_bfp[ch][0], sigma_XX_ptr, sum_X_energy_ptr, X_ptr, IC_FILTER_PHASES, sigma_xx_shift);
+#else
     aec_priv_update_X_fifo_and_calc_sigmaXX(&state->X_fifo_bfp[ch][0], sigma_XX_ptr, sum_X_energy_ptr, X_ptr, IC_FILTER_PHASES, sigma_xx_shift);
+#endif
 
 }
 
@@ -182,7 +190,11 @@ void ic_calc_Error_and_Y_hat(
     bfp_complex_s32_t *H_hat = state->H_hat_bfp[ch];
 
     int32_t bypass_enabled = state->config_params.bypass;
+#if AEC_COEFF_S16
+    aec_priv_calc_Error_and_Y_hat_packed(Error_ptr, Y_hat_ptr, Y_ptr, X_fifo, H_hat, IC_X_CHANNELS, IC_FILTER_PHASES, bypass_enabled);
+#else
     aec_priv_calc_Error_and_Y_hat(Error_ptr, Y_hat_ptr, Y_ptr, X_fifo, H_hat, IC_X_CHANNELS, IC_FILTER_PHASES, bypass_enabled);
+#endif
 }
 
 // Window error. Overlap add to create IC output
@@ -243,7 +255,11 @@ void ic_filter_adapt(ic_state_t *state){
     }
     bfp_complex_s32_t *T_ptr = &state->T_bfp[0];
     int y_ch = 0;
+#if AEC_COEFF_S16
+    aec_priv_filter_adapt_packed(state->H_hat_bfp[y_ch], state->X_fifo_1d_bfp, T_ptr, IC_X_CHANNELS, IC_FILTER_PHASES);
+#else
     aec_priv_filter_adapt(state->H_hat_bfp[y_ch], state->X_fifo_1d_bfp, T_ptr, IC_X_CHANNELS, IC_FILTER_PHASES);
+#endif
 }
 
 // Arithmetic shift for a signed int32_t
@@ -357,7 +373,11 @@ void ic_reset_filter(ic_state_t *state, int32_t output[IC_FRAME_ADVANCE]){
 
     for(unsigned ch=0; ch<IC_Y_CHANNELS; ch++) {
         bfp_complex_s32_t *H_hat = state->H_hat_bfp[ch];
+#if AEC_COEFF_S16
+        aec_priv_reset_filter_packed(H_hat, IC_X_CHANNELS, IC_FILTER_PHASES);
+#else
         aec_priv_reset_filter(H_hat, IC_X_CHANNELS, IC_FILTER_PHASES);
+#endif
     }
     const exponent_t zero_exp = -1024;
     for(unsigned ch = 0; ch < IC_X_CHANNELS; ch ++){
@@ -400,6 +420,15 @@ void ic_apply_leakage(
 
     for(int ph=0; ph<IC_X_CHANNELS*IC_FILTER_PHASES; ph++){
         bfp_complex_s32_t *H_hat_ptr = &state->H_hat_bfp[y_ch][ph];
+#if AEC_COEFF_S16
+        complex_s32_t DWORD_ALIGNED h32_mem[IC_FD_FRAME_LENGTH];
+        bfp_complex_s32_t h32;
+        bfp_complex_s32_init(&h32, h32_mem, 0, IC_FD_FRAME_LENGTH, 0);
+        aec_coeff_unpack_phase(&h32, H_hat_ptr);
+        bfp_complex_s32_real_scale(&h32, &h32, state->leakage_alpha);
+        aec_coeff_pack_phase(H_hat_ptr, &h32);
+#else
         bfp_complex_s32_real_scale(H_hat_ptr, H_hat_ptr, state->leakage_alpha);
+#endif
     }
 }

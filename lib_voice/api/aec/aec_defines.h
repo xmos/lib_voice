@@ -3,6 +3,8 @@
 #ifndef AEC_DEFINES_H
 #define AEC_DEFINES_H
 
+#include <stdint.h>
+
 #ifdef __aec_conf_h_exists__
     #include "aec_conf.h"
 #endif
@@ -26,6 +28,13 @@
  */
 #ifndef AEC_MAIN_FILTER_PHASES
 #define AEC_MAIN_FILTER_PHASES (10)
+#endif
+
+/** Store H_hat and X_fifo as 16-bit BFP mantissas (unpack to s32 for FDLMS).
+ *  Halves the adaptive-coefficient phase pool. Default off.
+ */
+#ifndef AEC_COEFF_S16
+#define AEC_COEFF_S16 (0)
 #endif
 
 /** @brief Maximum number of shadow-filter phases per adaptive filter at compile time.
@@ -108,6 +117,15 @@
  * @ingroup aec_defines
  */
 #define AEC_FD_FRAME_LENGTH ((AEC_PROC_FRAME_LENGTH / 2) + 1)
+
+#if AEC_COEFF_S16
+/** Word-aligned real/imag stride for packed s16 spectra (257 bins padded to 258). */
+#define AEC_PHASE_S16_STRIDE ((AEC_FD_FRAME_LENGTH + 1u) & ~1u)
+typedef struct {
+    int16_t real[AEC_PHASE_S16_STRIDE];
+    int16_t imag[AEC_PHASE_S16_STRIDE];
+} aec_phase_s16_t;
+#endif
 
 /** @brief Maximum total number of phases supported in the AEC library
  * This is the maximum number of total phases supported in the AEC library. Total phases are calculated by summing

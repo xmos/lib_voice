@@ -158,7 +158,11 @@ void aec_calc_X_fifo_energy(
     bfp_s32_t *X_energy_ptr = &state->X_energy[ch];
     bfp_complex_s32_t *X_ptr = &state->shared_state->X[ch];
     float_s32_t *max_X_energy_ptr = &state->max_X_energy[ch];
+#if AEC_COEFF_S16
+    aec_priv_update_total_X_energy_packed(X_energy_ptr, max_X_energy_ptr, &state->shared_state->X_fifo[ch][0], X_ptr, state->num_phases, recalc_bin);
+#else
     aec_priv_update_total_X_energy(X_energy_ptr, max_X_energy_ptr, &state->shared_state->X_fifo[ch][0], X_ptr, state->num_phases, recalc_bin);
+#endif
 }
 //per x-channel
 void aec_update_X_fifo_and_calc_sigmaXX(
@@ -169,7 +173,11 @@ void aec_update_X_fifo_and_calc_sigmaXX(
     bfp_complex_s32_t *X_ptr = &state->shared_state->X[ch];
     uint32_t sigma_xx_shift = state->shared_state->config_params.aec_core_conf.sigma_xx_shift;
     float_s32_t *sum_X_energy_ptr = &state->shared_state->sum_X_energy[ch]; //This needs to be done only for main filter, so doing it here instead of in aec_calc_X_fifo_energy
+#if AEC_COEFF_S16
+    aec_priv_update_X_fifo_and_calc_sigmaXX_packed(&state->shared_state->X_fifo[ch][0], sigma_XX_ptr, sum_X_energy_ptr, X_ptr, state->num_phases, sigma_xx_shift);
+#else
     aec_priv_update_X_fifo_and_calc_sigmaXX(&state->shared_state->X_fifo[ch][0], sigma_XX_ptr, sum_X_energy_ptr, X_ptr, state->num_phases, sigma_xx_shift);
+#endif
 }
 
 //per y-channel
@@ -184,7 +192,11 @@ void aec_calc_Error_and_Y_hat(
     bfp_complex_s32_t *Y_hat_ptr = &state->Y_hat[ch];
     bfp_complex_s32_t *Error_ptr = &state->Error[ch];
     int32_t bypass_enabled = state->shared_state->config_params.aec_core_conf.bypass;
+#if AEC_COEFF_S16
+    aec_priv_calc_Error_and_Y_hat_packed(Error_ptr, Y_hat_ptr, Y_ptr, state->X_fifo_1d, state->H_hat[ch], state->shared_state->num_x_channels, state->num_phases, bypass_enabled);
+#else
     aec_priv_calc_Error_and_Y_hat(Error_ptr, Y_hat_ptr, Y_ptr, state->X_fifo_1d, state->H_hat[ch], state->shared_state->num_x_channels, state->num_phases, bypass_enabled);
+#endif
 }
 
 void aec_inverse_fft(
@@ -304,7 +316,11 @@ void aec_filter_adapt(
     }
     bfp_complex_s32_t *T_ptr = &state->T[0];
 
+#if AEC_COEFF_S16
+    aec_priv_filter_adapt_packed(state->H_hat[y_ch], state->X_fifo_1d, T_ptr, state->shared_state->num_x_channels, state->num_phases);
+#else
     aec_priv_filter_adapt(state->H_hat[y_ch], state->X_fifo_1d, T_ptr, state->shared_state->num_x_channels, state->num_phases);
+#endif
 }
 
 void aec_calc_T(

@@ -132,31 +132,28 @@ add_library(lib_voice::agc ALIAS lib_voice_module_lib_agc)
 
 ## ic
 file( GLOB_RECURSE    LIB_IC_SOURCES       ${CMAKE_CURRENT_LIST_DIR}/src/ic/*.c )
-## Create library target
-add_library(lib_voice_module_lib_ic STATIC)
+## INTERFACE so consumer compile defs (e.g. AEC_COEFF_S16) apply to IC sources
+add_library(lib_voice_module_lib_ic INTERFACE)
 target_sources(lib_voice_module_lib_ic
-    PRIVATE
+    INTERFACE
         ${LIB_IC_SOURCES}
 )
 target_include_directories(lib_voice_module_lib_ic
-    PUBLIC
+    INTERFACE
         ${CMAKE_CURRENT_LIST_DIR}/api/ic
         ${CMAKE_CURRENT_LIST_DIR}/src/ic
 )
 target_compile_options(lib_voice_module_lib_ic
-    PRIVATE
+    INTERFACE
         -Os
         -g
 )
 target_link_libraries(lib_voice_module_lib_ic
-    PUBLIC
+    INTERFACE
         lib_xcore_math
         lib_voice::aec
-	    lib_voice::vnr
-)
-target_link_libraries(lib_voice_module_lib_ic
-    PRIVATE
-	    lib_voice_compile_options
+        lib_voice::vnr
+        lib_voice_compile_options
 )
 ## Create an alias
 add_library(lib_voice::ic ALIAS lib_voice_module_lib_ic)

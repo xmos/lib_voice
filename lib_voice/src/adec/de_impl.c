@@ -3,6 +3,7 @@
 
 #include "aec.h"
 #include "adec.h"
+#include "aec_priv.h"
 
 void adec_estimate_delay (
         de_output_t *de_output,
@@ -19,7 +20,15 @@ void adec_estimate_delay (
 
     for(int ph=0; ph<num_phases; ph++) { //compute delay over 1 x-y pair phases
         float_s32_t phase_power;
+#if AEC_COEFF_S16
+        complex_s32_t DWORD_ALIGNED h32_mem[AEC_FD_FRAME_LENGTH];
+        bfp_complex_s32_t h32;
+        bfp_complex_s32_init(&h32, h32_mem, 0, AEC_FD_FRAME_LENGTH, 0);
+        aec_coeff_unpack_phase(&h32, &H_hat[ph]);
+        aec_calc_freq_domain_energy(&phase_power, &h32);
+#else
         aec_calc_freq_domain_energy(&phase_power, &H_hat[ph]);
+#endif
         de_output->phase_power[ph] = phase_power;
         de_output->sum_phase_powers = float_s32_add(de_output->sum_phase_powers, phase_power);
         if(float_s32_gt(phase_power, peak_fd_power)) {

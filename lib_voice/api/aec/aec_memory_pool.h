@@ -56,7 +56,11 @@ typedef struct {
     int32_t ref_prev_samples[AEC_MAX_X_CHANNELS][AEC_PROC_FRAME_LENGTH - AEC_FRAME_ADVANCE];
     /** Memory pointed to by main filter aec_filter_state_t::H_hat, aec_shared_filter_state_t::X_fifo, main filter
      * aec_filter_state_t::X_fifo_1d and shadow filter aec_filter_state_t::X_fifo_1d*/
+#if AEC_COEFF_S16
+    aec_phase_s16_t phase_pool_H_hat_X_fifo[(AEC_MAX_Y_CHANNELS*AEC_MAX_X_CHANNELS*AEC_MAIN_FILTER_PHASES) + (AEC_MAX_X_CHANNELS*AEC_MAIN_FILTER_PHASES)];
+#else
     complex_s32_t phase_pool_H_hat_X_fifo[((AEC_MAX_Y_CHANNELS*AEC_MAX_X_CHANNELS*AEC_MAIN_FILTER_PHASES) + (AEC_MAX_X_CHANNELS*AEC_MAIN_FILTER_PHASES)) * AEC_FD_FRAME_LENGTH];
+#endif
     /** Memory pointed to by main filter aec_filter_state_t::Error and aec_filter_state_t::error*/
     complex_s32_t Error[AEC_MAX_Y_CHANNELS][AEC_FD_FRAME_LENGTH];
     /** Memory pointed to by main filter aec_filter_state_t::Y_hat and aec_filter_state_t::y_hat*/
@@ -106,7 +110,11 @@ typedef struct {
  */
 typedef struct {
     /** Memory pointed to by shadow filter aec_filter_state_t::H_hat*/
+#if AEC_COEFF_S16
+    aec_phase_s16_t phase_pool_H_hat[AEC_MAX_Y_CHANNELS * AEC_MAX_X_CHANNELS * AEC_SHADOW_FILTER_PHASES];
+#else
     complex_s32_t phase_pool_H_hat[AEC_MAX_Y_CHANNELS * AEC_MAX_X_CHANNELS * AEC_SHADOW_FILTER_PHASES * AEC_FD_FRAME_LENGTH];
+#endif
     /** Memory pointed to by shadow filter aec_filter_state_t::Error and aec_filter_state_t::error*/
     complex_s32_t Error[AEC_MAX_Y_CHANNELS][AEC_FD_FRAME_LENGTH];
     /** Memory pointed to by shadow filter aec_filter_state_t::Y_hat and aec_filter_state_t::y_hat*/

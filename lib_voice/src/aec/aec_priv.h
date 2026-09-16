@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "xmath/xmath.h"
+#include "aec_defines.h"
 
 //private AEC functions and defines
 
@@ -472,5 +473,55 @@ void aec_priv_calc_delta(
 float_s32_t aec_priv_calc_corr_factor(
         bfp_s32_t *y,
         bfp_s32_t *yhat);
+
+#if AEC_COEFF_S16
+void aec_coeff_unpack_phase(bfp_complex_s32_t *dst_s32, const bfp_complex_s32_t *packed);
+void aec_coeff_pack_phase(bfp_complex_s32_t *packed, const bfp_complex_s32_t *src_s32);
+
+void aec_priv_update_total_X_energy_packed(
+        bfp_s32_t *X_energy,
+        float_s32_t *max_X_energy,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_complex_s32_t *X_data,
+        unsigned num_phases,
+        unsigned recalc_bin);
+
+void aec_priv_update_X_fifo_and_calc_sigmaXX_packed(
+        bfp_complex_s32_t *X_fifo,
+        bfp_s32_t *sigma_XX,
+        float_s32_t *sum_X_energy,
+        const bfp_complex_s32_t *X_data,
+        unsigned num_phases,
+        uint32_t sigma_xx_shift);
+
+void aec_priv_calc_Error_and_Y_hat_packed(
+        bfp_complex_s32_t *Error,
+        bfp_complex_s32_t *Y_hat,
+        const bfp_complex_s32_t *Y,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_complex_s32_t *H_hat,
+        unsigned num_x_channels,
+        unsigned num_phases,
+        int32_t bypass_enabled);
+
+void aec_priv_filter_adapt_packed(
+        bfp_complex_s32_t *H_hat,
+        const bfp_complex_s32_t *X_fifo,
+        const bfp_complex_s32_t *T,
+        unsigned num_x_channels,
+        unsigned num_phases);
+
+void aec_priv_reset_filter_packed(
+        bfp_complex_s32_t *H_hat,
+        unsigned num_x_channels,
+        unsigned num_phases);
+
+void aec_priv_copy_filter_packed(
+        bfp_complex_s32_t *H_hat_dst,
+        const bfp_complex_s32_t *H_hat_src,
+        unsigned num_x_channels,
+        unsigned num_dst_phases,
+        unsigned num_src_phases);
+#endif
 
 #endif
