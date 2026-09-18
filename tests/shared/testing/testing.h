@@ -21,6 +21,9 @@ C_API int32_t double_to_int32(double d, const int d_exp);
 //Max diff between a bfp_s32 and double precision floating point vector
 C_API unsigned vector_int32_maxdiff(int32_t * B, int B_exp, double * f, int start, int count);
 
+//Max diff between a bfp_s16 and double precision floating point vector
+C_API unsigned vector_int16_maxdiff(int16_t * B, int B_exp, double * f, int start, int count);
+
 C_API void make_sine_table(double * sine_lut, unsigned proc_frame_length);
 C_API void bit_reverse( complex_double_t pts[], const uint32_t N );
 C_API void forward_fft (

@@ -45,17 +45,16 @@
  * on memory pool sizing and usage.
  *
  * \par Preconditions
- * \anchor aec_phase_pool_capacity The runtime configuration must be a subset of compile-time limits. This means:
+ * \anchor aec_phase_pool_capacity The runtime configuration must fit the compile-time one. All of
+ * the following must hold:
  * - num_y_channels <= @ref AEC_MAX_Y_CHANNELS
  * - num_x_channels <= @ref AEC_MAX_X_CHANNELS
- * - Total phase-pool demand should not exceed pool capacity, i.e.:
- *   (num_y_channels * num_x_channels * num_main_filter_phases) +
- *   (num_x_channels * num_main_filter_phases) <=
- *   (@ref AEC_MAX_Y_CHANNELS * @ref AEC_MAX_X_CHANNELS * @ref AEC_MAIN_FILTER_PHASES) +
- *   (@ref AEC_MAX_X_CHANNELS * @ref AEC_MAIN_FILTER_PHASES)
- * - and
- *   (num_y_channels * num_x_channels * num_shadow_filter_phases) <=
- *   (@ref AEC_MAX_Y_CHANNELS * @ref AEC_MAX_X_CHANNELS * @ref AEC_SHADOW_FILTER_PHASES)
+ * - num_x_channels * num_main_filter_phases <= @ref AEC_LIB_MAX_PHASES
+ * - num_x_channels * num_shadow_filter_phases <= @ref AEC_LIB_MAX_PHASES
+ * - AEC_MAIN_POOL_BYTES(num_y_channels, num_x_channels, num_main_filter_phases)
+ *   <= sizeof(@ref aec_memory_pool_t)
+ * - AEC_SHADOW_POOL_BYTES(num_y_channels, num_x_channels, num_shadow_filter_phases)
+ *   <= sizeof(@ref aec_shadow_filt_memory_pool_t)
  *
  * @param[inout] aec_state                AEC state object
  * @param[in]    num_y_channels           Number of microphone input channels
@@ -183,5 +182,29 @@ float_s32_t aec_calc_max_input_energy(
 float_s32_t aec_calc_corr_factor(
         aec_filter_state_t *state,
         unsigned ch);
+
+/** @brief Find where a time domain filter tap lives within a stored filter phase
+ *
+ * The taps of an aec_filter_state_t::h_hat phase are not stored in time order - they are permuted into the
+ * bit-reversed index order the FFT works in, which lets the AEC skip the index bit-reversal pass on both of the
+ * per-phase transforms it does every frame. This function maps a tap's position in the impulse response to its
+ * position in the stored phase, so that code reading or writing the filter can account for the permutation:
+ *
+ * \code
+ *      // read tap n of the impulse response of phase ph
+ *      int16_t tap = state->h_hat[ch][ph].data[aec_h_hat_tap_index(n)];
+ * \endcode
+ *
+ * The mapping is a permutation of `[0, AEC_FRAME_ADVANCE)` onto itself, so it can be used in either direction. It is
+ * only needed by code that cares about the *order* of the taps; anything order independent (per-phase energy, copying
+ * or zeroing a whole phase) can use the stored data directly.
+ *
+ * @param[in] n Position of the tap in the filter phase's impulse response, less than @ref AEC_FRAME_ADVANCE
+ * @returns Index of that tap within the stored filter phase
+ *
+ * @ingroup aec_func
+ *
+ */
+unsigned aec_h_hat_tap_index(unsigned n);
 
 #endif

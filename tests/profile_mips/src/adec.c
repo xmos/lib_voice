@@ -27,7 +27,7 @@ void test_adec(int32_t (*input)[AEC_FRAME_ADVANCE], int32_t (*output)[AEC_FRAME_
     prof(0, "start_adec_estimate_delay");
     adec_estimate_delay(
         &adec_input.from_de,
-        aec_state.main_state.H_hat[0],
+        aec_state.main_state.h_hat[0],
         aec_state.main_state.num_phases
         );
     prof(1, "end_adec_estimate_delay");

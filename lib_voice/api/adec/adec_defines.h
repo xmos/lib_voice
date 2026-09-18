@@ -3,9 +3,11 @@
 #ifndef ADEC_DEFINES_H
 #define ADEC_DEFINES_H
 
+#include "aec.h"
+
 /**
- * @defgroup adec_defines   ADEC #define constants 
- */ 
+ * @defgroup adec_defines   ADEC #define constants
+ */
 
 /** 
  * @brief Number of frames far we look back to smooth the peak to average filter power ratio history
@@ -34,5 +36,68 @@
  * @ingroup adec_defines
  */
 #define ADEC_DE_DELAY_SAMPS                     (16000 * ADEC_DE_DELAY_MS / 1000)
+
+
+/**
+ * @brief The AEC configuration ADEC runs during a delay estimation cycle.
+ *
+ * While estimating the delay, ADEC has the application re-initialise the AEC as a single channel
+ * filter long enough to search the delay range, with no shadow filter. This configuration is fixed
+ * rather than derived from the application's normal mode AEC, but must fit within the same memory
+ * pool.
+ *
+ * Applications should build their delay estimation mode `aec_conf_t` from these defines.
+ *
+ * @ingroup adec_defines
+ */
+#ifndef ADEC_DE_MODE_Y_CHANNELS
+#define ADEC_DE_MODE_Y_CHANNELS                 (1)
+#endif
+/** @brief See @ref ADEC_DE_MODE_Y_CHANNELS @ingroup adec_defines */
+#ifndef ADEC_DE_MODE_X_CHANNELS
+#define ADEC_DE_MODE_X_CHANNELS                 (1)
+#endif
+/** @brief See @ref ADEC_DE_MODE_Y_CHANNELS @ingroup adec_defines
+ *
+ * A delay estimation cycle's memory demand is almost all X_fifo, which @ref aec_memory_pool_t
+ * reserves for `AEC_MAX_X_CHANNELS * AEC_MAIN_FILTER_PHASES` phases - a count that says nothing
+ * about the `ADEC_DE_MODE_X_CHANNELS * ADEC_DE_MODE_MAIN_FILTER_PHASES` this configuration needs.
+ * An AEC built for 2 y channels by 2 x channels by 10 phases reserves only 20 X_fifo phases
+ * against the 30 a full length delay estimation filter asks for, and 30 does not fit; 29 does.
+ *
+ * The default is therefore 29, which is what a 10 phase AEC can afford. 30 is the length the delay
+ * estimator is tuned for and it does measurably better on rapid delay changes, so an application
+ * that can spare the memory should ask for it - building the AEC for 11 phases rather than 10 is
+ * enough, and the delay estimation tests do exactly that. The assertion below decides whether a
+ * given pairing fits. Either way the filter spans far more than @ref ADEC_DE_DELAY_SAMPS, which is
+ * what bounds the delay ADEC can actually measure. */
+#ifndef ADEC_DE_MODE_MAIN_FILTER_PHASES
+#define ADEC_DE_MODE_MAIN_FILTER_PHASES         (29)
+#endif
+/** @brief See @ref ADEC_DE_MODE_Y_CHANNELS @ingroup adec_defines */
+#ifndef ADEC_DE_MODE_SHADOW_FILTER_PHASES
+#define ADEC_DE_MODE_SHADOW_FILTER_PHASES       (0)
+#endif
+
+/* The delay estimator shares the same memory pool as the AEC, so check it fits. */
+_Static_assert(ADEC_DE_MODE_Y_CHANNELS <= AEC_MAX_Y_CHANNELS,
+        "The AEC is not built for enough y channels to run ADEC");
+_Static_assert(ADEC_DE_MODE_X_CHANNELS <= AEC_MAX_X_CHANNELS,
+        "The AEC is not built for enough x channels to run ADEC");
+_Static_assert(ADEC_DE_MODE_X_CHANNELS * ADEC_DE_MODE_MAIN_FILTER_PHASES <= AEC_LIB_MAX_PHASES,
+        "ADEC is using more filter phases than AEC_LIB_MAX_PHASES allows. Build the AEC for more "
+        "phases, or reduce ADEC_DE_MODE_MAIN_FILTER_PHASES");
+_Static_assert(AEC_MAIN_POOL_BYTES(ADEC_DE_MODE_Y_CHANNELS, ADEC_DE_MODE_X_CHANNELS,
+                                  ADEC_DE_MODE_MAIN_FILTER_PHASES) <= sizeof(aec_memory_pool_t),
+        "ADEC does not fit aec_memory_pool_t. Build the AEC for more phases, or reduce "
+        "ADEC_DE_MODE_MAIN_FILTER_PHASES");
+_Static_assert(AEC_SHADOW_POOL_BYTES(ADEC_DE_MODE_Y_CHANNELS, ADEC_DE_MODE_X_CHANNELS,
+                                     ADEC_DE_MODE_SHADOW_FILTER_PHASES)
+                <= sizeof(aec_shadow_filt_memory_pool_t),
+        "ADEC does not fit aec_shadow_filt_memory_pool_t");
+_Static_assert(ADEC_DE_DELAY_SAMPS <= ADEC_DE_MODE_MAIN_FILTER_PHASES * AEC_FRAME_ADVANCE,
+        "The delay estimation filter is shorter than the delay range ADEC searches, so the delay "
+        "ADEC applies at the start of a cycle would push the echo past the end of the filter. "
+        "Increase ADEC_DE_MODE_MAIN_FILTER_PHASES or reduce ADEC_DE_DELAY_MS");
 
 #endif

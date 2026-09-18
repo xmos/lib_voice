@@ -11,6 +11,17 @@ set(LIB_COMPILER_FLAGS
             -DHEADROOM_CHECK=0
 )
 
+# The hand written assembly under src/ is XS3 only - see aec_h_hat_bitrev.S, which has a C
+# equivalent compiled in its place elsewhere. Setting LIB_ASM_SRCS explicitly stops XCommon CMake
+# globbing those files into the vx4b and native builds, where they would be empty translation
+# units at best.
+if(APP_BUILD_ARCH STREQUAL "xs3a")
+    file(GLOB_RECURSE LIB_ASM_SRCS RELATIVE ${CMAKE_CURRENT_LIST_DIR} CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_LIST_DIR}/src/*.S")
+else()
+    set(LIB_ASM_SRCS "")
+endif()
+
 if(APP_BUILD_ARCH STREQUAL "xs3a")
     list(APPEND LIB_COMPILER_FLAGS
         -Wno-xcore-fptrgroup

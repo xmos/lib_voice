@@ -234,7 +234,7 @@ void ic_compute_T(
     aec_priv_compute_T(T_ptr, Error_ptr, inv_X_energy_ptr, mu);
 }
 
-// Adapt H_hat
+// Adapt h_hat
 void ic_filter_adapt(ic_state_t *state){
     if((state->ic_adaption_controller_state.adaption_controller_config.enable_adaption == 0) ||
        state->config_params.bypass ||

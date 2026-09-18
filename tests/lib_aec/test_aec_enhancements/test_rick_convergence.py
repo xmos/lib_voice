@@ -104,9 +104,10 @@ def test_pink_convergence(adapt_config, channel_count, target):
     error = output_wav_file
     _, leq_error = wtf.leq_smooth(error[:, 0], fs, 0.05)
     time = np.arange(len(leq_error))*0.05
-    Hxmos = run_xc.get_h_hat(filter_fd_file, 'xc')[0,0]
-    print('Hxmos.shape = ',Hxmos.shape)
-    h = np.fft.irfft(Hxmos)
+    # The AEC filter is dumped in the time domain, so each phase is already the impulse response
+    # for that phase and no inverse transform is needed to recover it.
+    h = run_xc.get_h_hat(filter_fd_file, 'xc')[0,0]
+    print('h.shape = ',h.shape)
     hxmos = np.zeros(frame_advance*phases)
     for p in range(phases):
         hxmos[p*frame_advance: frame_advance*(p+1)] = h[p, :frame_advance]

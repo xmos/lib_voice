@@ -104,7 +104,7 @@ void pipeline_wrapper(const char *input_file_name, const char* output_file_name)
     // Open output wav file that will contain the AEC output
     ret = file_open(&output_file, output_file_name, "wb");
     assert((!ret) && "Failed to open file");
-    ret = file_open(&H_hat_file, "H_hat.bin", "wb");
+    ret = file_open(&H_hat_file, "h_hat.bin", "wb");
     assert((!ret) && "Failed to open file");
     ret = file_open(&req_delay_file, "requested_delay_samples.bin", "wb");
     assert((!ret) && "Failed to open file");
@@ -117,19 +117,19 @@ void pipeline_wrapper(const char *input_file_name, const char* output_file_name)
 #endif
     const int32_t file_size = get_file_size(&input_file);
     const unsigned frame_count =
-        file_size / ((AEC_MAX_Y_CHANNELS+AEC_MAX_X_CHANNELS) * (unsigned)sizeof(int32_t) * AEC_FRAME_ADVANCE);
+        file_size / ((AP_MAX_Y_CHANNELS+AP_MAX_X_CHANNELS) * (unsigned)sizeof(int32_t) * AEC_FRAME_ADVANCE);
 
-    int32_t DWORD_ALIGNED frame_y[AEC_MAX_Y_CHANNELS][AEC_FRAME_ADVANCE];
-    int32_t DWORD_ALIGNED frame_x[AEC_MAX_X_CHANNELS][AEC_FRAME_ADVANCE];
-    int32_t DWORD_ALIGNED pipeline_output[2][AEC_FRAME_ADVANCE];
+    int32_t DWORD_ALIGNED frame_y[AP_MAX_Y_CHANNELS][AEC_FRAME_ADVANCE];
+    int32_t DWORD_ALIGNED frame_x[AP_MAX_X_CHANNELS][AEC_FRAME_ADVANCE];
+    int32_t DWORD_ALIGNED pipeline_output[AP_MAX_Y_CHANNELS][AEC_FRAME_ADVANCE];
 
     // Initialise pipeline
     aec_conf_t aec_de_mode_conf, aec_non_de_mode_conf;
     // DE mode AEC config is fixed and not run time configurable
-    aec_de_mode_conf.num_x_channels = 1;
-    aec_de_mode_conf.num_y_channels = 1;
-    aec_de_mode_conf.num_main_filt_phases = 30;
-    aec_de_mode_conf.num_shadow_filt_phases = 0;
+    aec_de_mode_conf.num_x_channels = ADEC_DE_MODE_X_CHANNELS;
+    aec_de_mode_conf.num_y_channels = ADEC_DE_MODE_Y_CHANNELS;
+    aec_de_mode_conf.num_main_filt_phases = ADEC_DE_MODE_MAIN_FILTER_PHASES;
+    aec_de_mode_conf.num_shadow_filt_phases = ADEC_DE_MODE_SHADOW_FILTER_PHASES;
     aec_de_mode_conf.tdist = &tdist;
 
     /** Non DE mode AEC config is runtime configurable, main reason being ADEC tests pass only for alt arch (1, 2, 15,
@@ -164,8 +164,8 @@ void pipeline_wrapper(const char *input_file_name, const char* output_file_name)
     pipeline_state.aec_state.main_state.shared_state->config_params.coh_mu_conf.force_adaption_mu_q30 = runtime_args[FORCE_ADAPTION_MU];
 
     for(unsigned b=0; b < frame_count; b++){
-        file_read(&input_file, (uint8_t*)&frame_y[0][0], (unsigned)sizeof(int32_t) * AEC_MAX_Y_CHANNELS * AEC_FRAME_ADVANCE);
-        file_read(&input_file, (uint8_t*)&frame_x[0][0], (unsigned)sizeof(int32_t) * AEC_MAX_X_CHANNELS * AEC_FRAME_ADVANCE);
+        file_read(&input_file, (uint8_t*)&frame_y[0][0], (unsigned)sizeof(int32_t) * AP_MAX_Y_CHANNELS * AEC_FRAME_ADVANCE);
+        file_read(&input_file, (uint8_t*)&frame_x[0][0], (unsigned)sizeof(int32_t) * AP_MAX_X_CHANNELS * AEC_FRAME_ADVANCE);
 
         if (runtime_args[STOP_ADAPTING] > 0) {
             runtime_args[STOP_ADAPTING]--;
@@ -197,7 +197,7 @@ void pipeline_wrapper(const char *input_file_name, const char* output_file_name)
         file_write(&debug_log_file, (uint8_t*)buf,  strlen(buf));
 #endif
 
-        file_write(&output_file, (uint8_t*)pipeline_output, (AEC_MAX_Y_CHANNELS * AEC_FRAME_ADVANCE * sizeof(int32_t)));
+        file_write(&output_file, (uint8_t*)pipeline_output, (AP_MAX_Y_CHANNELS * AEC_FRAME_ADVANCE * sizeof(int32_t)));
 
         char strbuf[100];
         sprintf(strbuf, "%ld\n", pipeline_state.adec_requested_delay_samples);

@@ -35,17 +35,25 @@ set(AEC_SCHEDULE_CONFIG ${TEST_DELAY_ESTIMATOR_BUILD_CONFIG})
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../test_deps.cmake)
 
+# The test wav carries 2 mic and 2 reference channels while the AEC is built for the 1 y channel
+# configuration this test actually runs (see TEST_DELAY_ESTIMATOR_BUILD_CONFIG)
+set(TEST_DELAY_ESTIMATOR_CHANNEL_FLAGS -DAP_MAX_Y_CHANNELS=2 -DAP_MAX_X_CHANNELS=2)
+
 if (NOT BUILD_NATIVE)
     set(APP_COMPILER_FLAGS
             -report
             -Os
             -DTEST_WAV_XSCOPE=1
+            ${ADEC_TEST_DE_MODE_FLAGS}
             -DENABLE_ADEC_DEBUG_PRINTS
-            -DBYPASS_ADEC=1)
+            -DBYPASS_ADEC=1
+            ${TEST_DELAY_ESTIMATOR_CHANNEL_FLAGS})
 
     set(APP_XSCOPE_SRCS ${CONFIG_XSCOPE_REL_PATH})
 else()
     set(APP_COMPILER_FLAGS
-            -DX86_BUILD=1)
+            -DX86_BUILD=1
+            ${ADEC_TEST_DE_MODE_FLAGS}
+            ${TEST_DELAY_ESTIMATOR_CHANNEL_FLAGS})
 endif()
 XMOS_REGISTER_APP()

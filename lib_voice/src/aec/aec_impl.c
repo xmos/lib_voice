@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <assert.h>
 #include "aec.h"
 #include "aec_priv.h"
 
@@ -17,6 +18,15 @@ void aec_init(
 {
     assert(tdist);
     assert(tdist->thread_count <= 3); // hardcoded in PAR_THREADS_PJOBS macro
+    assert(num_y_channels <= AEC_MAX_Y_CHANNELS);
+    assert(num_x_channels <= AEC_MAX_X_CHANNELS);
+
+    // Check this filter config will fit in the memory pools
+    assert(AEC_MAIN_POOL_BYTES(num_y_channels, num_x_channels, num_main_filter_phases)
+            <= sizeof(aec_memory_pool_t));
+    assert(AEC_SHADOW_POOL_BYTES(num_y_channels, num_x_channels, num_shadow_filter_phases)
+            <= sizeof(aec_shadow_filt_memory_pool_t));
+
     aec_priv_main_init(&aec_state->main_state, &aec_state->shared_state, (uint8_t*)&aec_state->main_mem_pool, num_y_channels, num_x_channels, num_main_filter_phases);
     aec_priv_shadow_init(&aec_state->shadow_state, &aec_state->shared_state, (uint8_t*)&aec_state->shadow_mem_pool, num_shadow_filter_phases);
     aec_state->shared_state.tdist = tdist;
@@ -184,7 +194,7 @@ void aec_calc_Error_and_Y_hat(
     bfp_complex_s32_t *Y_hat_ptr = &state->Y_hat[ch];
     bfp_complex_s32_t *Error_ptr = &state->Error[ch];
     int32_t bypass_enabled = state->shared_state->config_params.aec_core_conf.bypass;
-    aec_priv_calc_Error_and_Y_hat(Error_ptr, Y_hat_ptr, Y_ptr, state->X_fifo_1d, state->H_hat[ch], state->shared_state->num_x_channels, state->num_phases, bypass_enabled);
+    aec_priv_calc_Error_and_Y_hat_td(Error_ptr, Y_hat_ptr, Y_ptr, state->X_fifo_1d, state->h_hat[ch], state->shared_state->num_x_channels, state->num_phases, bypass_enabled);
 }
 
 void aec_inverse_fft(
@@ -304,7 +314,7 @@ void aec_filter_adapt(
     }
     bfp_complex_s32_t *T_ptr = &state->T[0];
 
-    aec_priv_filter_adapt(state->H_hat[y_ch], state->X_fifo_1d, T_ptr, state->shared_state->num_x_channels, state->num_phases);
+    aec_priv_filter_adapt_td(state->h_hat[y_ch], state->X_fifo_1d, T_ptr, state->shared_state->num_x_channels, state->num_phases);
 }
 
 void aec_calc_T(
@@ -382,18 +392,18 @@ void aec_reset_state(aec_state_t *aec_state){
     uint32_t x_channels = shared_state->num_x_channels;
     uint32_t main_phases = main_state->num_phases;
     uint32_t shadow_phases = shadow_state->num_phases;
-    //Main H_hat
+    //Main h_hat
     for(int ch=0; ch<y_channels; ch++) {
         for(int ph=0; ph<x_channels*main_phases; ph++) {
-            main_state->H_hat[ch][ph].exp = AEC_ZEROVAL_EXP;
-            main_state->H_hat[ch][ph].hr = AEC_ZEROVAL_HR;
+            main_state->h_hat[ch][ph].exp = AEC_ZEROVAL_EXP;
+            main_state->h_hat[ch][ph].hr = AEC_ZEROVAL_HR16;
         }
     }
-    //Shadow H_hat
+    //Shadow h_hat
     for(int ch=0; ch<y_channels; ch++) {
         for(int ph=0; ph<x_channels*shadow_phases; ph++) {
-            shadow_state->H_hat[ch][ph].exp = AEC_ZEROVAL_EXP;
-            shadow_state->H_hat[ch][ph].hr = AEC_ZEROVAL_HR;
+            shadow_state->h_hat[ch][ph].exp = AEC_ZEROVAL_EXP;
+            shadow_state->h_hat[ch][ph].hr = AEC_ZEROVAL_HR16;
         }
     }
     //X_fifo

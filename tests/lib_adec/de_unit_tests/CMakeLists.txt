@@ -41,6 +41,7 @@ foreach(test_file ${tests})
         -DDEBUG_PRINT_ENABLE=1
         -DUNITY_SUPPORT_64
         -DSPEEDUP_FACTOR=${TEST_SPEEDUP_FACTOR}
+        ${ADEC_TEST_DE_MODE_FLAGS}
         )
 endforeach()
 

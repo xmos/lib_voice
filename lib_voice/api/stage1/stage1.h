@@ -24,6 +24,32 @@
 #endif
 
 
+/** Number of microphone (Y) channels the pipeline carries through stage1.
+ *  In @ref ALT_ARCH_MODE this must be 2.
+ *
+ * @ingroup stage1_types
+ */
+#ifndef STAGE1_MAX_Y_CHANNELS
+#if ALT_ARCH_MODE
+#define STAGE1_MAX_Y_CHANNELS (2)
+#else
+#define STAGE1_MAX_Y_CHANNELS (AEC_MAX_Y_CHANNELS)
+#endif
+#endif
+
+_Static_assert(STAGE1_MAX_Y_CHANNELS >= AEC_MAX_Y_CHANNELS,
+        "STAGE1_MAX_Y_CHANNELS is the number of mic channels Stage1 carries, so it cannot be "
+        "smaller than the number of y channels the AEC can be configured for");
+_Static_assert(STAGE1_MAX_Y_CHANNELS <= MAX_DELAY_BUF_CHANNELS,
+        "The delay buffer holds MAX_DELAY_BUF_CHANNELS channels, so it cannot delay every mic "
+        "channel Stage1 carries");
+#if ALT_ARCH_MODE
+_Static_assert(STAGE1_MAX_Y_CHANNELS == 2,
+        "alt arch duplicates the single channel AEC output into a second mic channel for the IC, so "
+        "it needs the pipeline to carry 2 mic channels");
+#endif
+
+
 /** Limit in seconds for which AEC is kept enabled after detecting reference as inactive.
  *  Used only in alt arch configuration.
  *
@@ -125,11 +151,11 @@ void stage1_init(stage1_t *state, aec_conf_t *de_conf, aec_conf_t *non_de_conf, 
  * the compile-time flag @ref ALT_ARCH_MODE.
  *
  * @param[in,out] state            Persistent Stage1 state.
- * @param[out]    output_frame     Output frame buffer [Y channels][AEC_FRAME_ADVANCE] in Q31 format.
+ * @param[out]    output_frame     Output frame buffer [@ref STAGE1_MAX_Y_CHANNELS][AEC_FRAME_ADVANCE] in Q31 format.
  * @param[out]    max_ref_energy   Maximum reference-channel energy (float_s32_t) for this frame.
  * @param[out]    aec_corr_factor  AEC correction factor (float_s32_t) computed for this frame.
  * @param[out]    ref_active_flag  Set non-zero if reference is detected active this frame.
- * @param[in]     input_y          Microphone (Y) input frame [Y channels][AEC_FRAME_ADVANCE] in Q31 format.
+ * @param[in]     input_y          Microphone (Y) input frame [@ref STAGE1_MAX_Y_CHANNELS][AEC_FRAME_ADVANCE] in Q31 format.
  * @param[in]     input_x          Reference (X) input frame [X channels][AEC_FRAME_ADVANCE] in Q31 format.
  *
  * @ingroup stage1_api

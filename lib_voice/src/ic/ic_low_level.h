@@ -21,7 +21,7 @@ void ic_mu_control_system(
 // Calculates fast energy
 void ic_calc_fast_ratio(ic_adaption_controller_state_t * ad_state);
 
-// Adapt H_hat
+// Adapt h_hat
 void ic_filter_adapt(ic_state_t *state);
 
 // Some nice doxygen comments
@@ -105,7 +105,7 @@ void ic_l2_calc_Error_and_Y_hat(
         unsigned length,
         int32_t bypass_enabled);
 
-// Adapt one phase or 2 consecutive phases of H_hat filter
+// Adapt one phase or 2 consecutive phases of h_hat filter
 void ic_l2_adapt_plus_fft_gc(
         bfp_complex_s32_t *H_hat_ph,
         const bfp_complex_s32_t *X_fifo_ph,
@@ -135,7 +135,7 @@ void ic_l2_bfp_s32_unify_exponent(
 // Clear coefficients to zero
 void ic_reset_filter(ic_state_t *state, int32_t output[IC_FRAME_ADVANCE]);
 
-// Leak H_hat to forget adaption
+// Leak h_hat to forget adaption
 void ic_apply_leakage(
         ic_state_t *state,
         unsigned y_ch);

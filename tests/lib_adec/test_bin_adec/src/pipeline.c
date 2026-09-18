@@ -101,7 +101,7 @@ void pipeline_process_frame(pipeline_state_t *state,
     adec_input_t adec_in;
     adec_estimate_delay(
             &adec_in.from_de,
-            state->aec_state.main_state.H_hat[0],
+            state->aec_state.main_state.h_hat[0],
             state->aec_state.main_state.num_phases
             );
 

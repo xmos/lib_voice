@@ -21,7 +21,7 @@
 /** Alpha used for calculating y_ema_energy, x_ema_energy and error_ema_energy.
  * @ingroup ic_defines */
 #define IC_INIT_EMA_ALPHA                           0.9995117188 // From two_mic_stereo.json
-/** Alpha used for leaking away H_hat, allowing filter to slowly forget adaption. This
+/** Alpha used for leaking away h_hat, allowing filter to slowly forget adaption. This
  * value is adjusted by the adaption rate controller if instability is detected.
  * @ingroup ic_defines */
 #define IC_INIT_LEAKAGE_ALPHA                       0.995 // From two_mic_stereo.json

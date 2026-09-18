@@ -114,7 +114,7 @@
  * phases across adaptive filters for all x-y pairs.
  *
  * For example. for a 2 y-channels, 2 x-channels, 10 phases per x channel configuration, there are 4 adaptive filters,
- * H_hat<SUB>y0x0</SUB>, H_hat<SUB>y0x1</SUB>, H_hat<SUB>y1x0</SUB> and H_hat<SUB>y1x1</SUB>, each filter having 10
+ * h_hat<SUB>y0x0</SUB>, h_hat<SUB>y0x1</SUB>, h_hat<SUB>y1x0</SUB> and h_hat<SUB>y1x1</SUB>, each filter having 10
  * phases, so the total number of phases is 40.
  * When aec_init() is called to initialise the AEC, the num_y_channels, num_x_channels and num_main_filter_phases
  * parameters passed in should be such that num_y_channels * num_x_channels * num_main_filter_phases is less than equal
@@ -126,6 +126,16 @@
  * @ingroup aec_defines
  */
 #define AEC_LIB_MAX_PHASES (AEC_MAX_Y_CHANNELS * AEC_MAX_X_CHANNELS * AEC_MAIN_FILTER_PHASES)
+
+/** @brief Maximum total number of phases supported in the AEC shadow filter. 
+ * 
+ * See the description for @ref AEC_LIB_MAX_PHASES for more details on how total phases are calculated.
+ * 
+ * @ingroup aec_defines
+ */
+#define AEC_LIB_MAX_SHADOW_PHASES (AEC_MAX_Y_CHANNELS * AEC_MAX_X_CHANNELS * AEC_SHADOW_FILTER_PHASES)
+
+
 
 /** Overlap data length
  *
@@ -142,7 +152,8 @@
 #define AEC_FFT_PADDING (2)
 
 #define AEC_ZEROVAL_EXP (-1024) /// A very small exponent indicating 0 value.
-#define AEC_ZEROVAL_HR (31) /// Headroom value used in BFP arrays when indicating 0 value by setting exponent to AEC_ZEROVAL_EXP
+#define AEC_ZEROVAL_HR (31) /// Headroom value used in 32 bit BFP arrays when indicating 0 value by setting exponent to AEC_ZEROVAL_EXP
+#define AEC_ZEROVAL_HR16 (15) /// AEC_ZEROVAL_HR for the 16 bit BFP arrays, which hold at most 15 bits of headroom
 
 /** @brief Maximum number of hardware threads supported by the AEC.
  *

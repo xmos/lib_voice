@@ -18,6 +18,19 @@ target_sources(lib_voice_module_aec
         ${CMAKE_CURRENT_LIST_DIR}/src/aec/aec_process_frame.c
         ${CMAKE_CURRENT_LIST_DIR}/src/aec/aec_schedule_defaults.c
 )
+
+# The hand written assembly under src/aec is XS3 only - see aec_h_hat_bitrev.S, which has a C
+# equivalent compiled in its place elsewhere. Adding it only for xs3a keeps it out of the native
+# build, where it would be an empty translation unit at best. Mirrors LIB_ASM_SRCS in
+# lib_build_info.cmake, which does the same for the XCommon CMake build.
+if(CMAKE_SYSTEM_NAME STREQUAL XCORE_XS3A)
+    file(GLOB_RECURSE LIB_AEC_ASM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_LIST_DIR}/src/aec/*.S)
+    target_sources(lib_voice_module_aec
+        INTERFACE
+            ${LIB_AEC_ASM_SOURCES}
+    )
+endif()
+
 target_include_directories(lib_voice_module_aec
     INTERFACE
         ${CMAKE_CURRENT_LIST_DIR}/api/aec

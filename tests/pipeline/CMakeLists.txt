@@ -48,4 +48,9 @@ set(APP_COMPILER_FLAGS_alt_arch
             ${APP_COMMON_FLAGS}
             -DALT_ARCH_MODE=1)
 
+## Generate AEC schedule configurations for each build config
+set(AEC_SCHEDULE_CONFIG_std_arch      "2 2 2 10 5")
+set(AEC_SCHEDULE_CONFIG_aec_ic_ns_agc "2 2 2 10 5")
+set(AEC_SCHEDULE_CONFIG_alt_arch      "2 1 2 15 5")
+
 XMOS_REGISTER_APP()
