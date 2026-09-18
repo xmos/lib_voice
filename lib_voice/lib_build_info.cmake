@@ -8,7 +8,7 @@ set(LIB_DEPENDENT_MODULES
 set(LIB_COMPILER_FLAGS
             -g
             -Os
-            -DHEADROOM_CHECK=0
+            -DHEADROOM_CHECK=1
 )
 
 if(APP_BUILD_ARCH STREQUAL "xs3a")
