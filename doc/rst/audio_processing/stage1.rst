@@ -118,6 +118,24 @@ In the absence of activity on the reference channels, when the AEC is disabled, 
 
 Alternating architecture is disabled by default (see :c:macro:`ALT_ARCH_MODE`). To enable it, define ``ALT_ARCH_MODE`` to 1 in the application's CMakeLists.txt.
 
+Fixed Delay (ADEC disabled)
+-----------------------------------
+
+The automatic delay estimation and correction performed by ADEC can be compiled out by defining
+:c:macro:`STAGE1_DISABLE_ADEC` to 1 in the application's CMakeLists.txt. When disabled, Stage1 does
+not run the delay estimator and never switches into delay estimation mode; it remains in its
+regular AEC configuration and instead applies a fixed input delay through the delay buffer.
+
+The application is responsible for setting the required delay after :c:func:`stage1_init()`, for
+example by calling ``update_delay_samples()`` with the known microphone-to-reference delay in
+samples (a positive value delays the microphone, a negative value delays the reference).
+
+This is useful when the delay between the microphone and reference paths is known and fixed, as it
+avoids the memory and compute cost of the delay estimator. It can be combined with either the
+standard or the alternating architecture.
+
+:c:macro:`STAGE1_DISABLE_ADEC` is 0 (ADEC enabled) by default.
+
 Usage
 -----
 

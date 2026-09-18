@@ -127,6 +127,7 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
         aec_corr_factor[ch] = aec_calc_corr_factor(&state->aec_state.main_state, ch);
     }
 
+#if !STAGE1_DISABLE_ADEC
     /** Delay Estimation*/
     adec_input_t adec_in;
     adec_estimate_delay(
@@ -163,11 +164,13 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
             reset_partial_delay_buffer(&state->delay_state, ch);
         }
     }
+#endif /* !STAGE1_DISABLE_ADEC */
 
 #if ALT_ARCH_MODE
     alt_arch_rewrite_output(output_frame, input_y, state->aec_state.main_state.shared_state->num_y_channels, state->aec_state.main_state.shared_state->config_params.aec_core_conf.bypass);
 #endif
 
+#if !STAGE1_DISABLE_ADEC
     // Overwrite output with mic input if delay estimation enabled
     if (state->delay_estimator_enabled) {
         for(int ch=0; ch<AEC_MAX_Y_CHANNELS; ch++) {
@@ -190,4 +193,5 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
         aec_switch_configuration(state, &state->aec_non_de_mode_conf);
         state->delay_estimator_enabled = 0;
     }
+#endif /* !STAGE1_DISABLE_ADEC */
 }
