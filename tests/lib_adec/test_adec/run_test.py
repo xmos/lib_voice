@@ -59,9 +59,10 @@ def run_test(pipeline_config, info, path_to_regression_files, input_audio_files,
     print ("run_target = ", run_target, ", tmp_dir = ", tmp_dir)
 
     frame_advance = 240
-    AEC_MAX_Y_CHANNELS = 2
+    # The input wav carries 2 mic channels but the AEC only processes, and the DUT only writes,
+    # num_y_channels of them
     output_file = tmp_path / "output.wav"
-    test_wav(test_exe, aec_input_file, output_file, frame_advance, AEC_MAX_Y_CHANNELS, frame_advance, target=target, tmp_folder=tmp_dir)
+    test_wav(test_exe, aec_input_file, output_file, frame_advance, pipeline_config['num_y_channels'], frame_advance, target=target, tmp_folder=tmp_dir)
 
     # Read estimated delay samples for every frame
     with open(tmp_path / delay_output_file_name, 'r') as f:

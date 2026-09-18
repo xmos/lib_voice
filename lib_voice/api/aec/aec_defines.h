@@ -127,6 +127,16 @@
  */
 #define AEC_LIB_MAX_PHASES (AEC_MAX_Y_CHANNELS * AEC_MAX_X_CHANNELS * AEC_MAIN_FILTER_PHASES)
 
+/** @brief Maximum total number of phases supported in the AEC shadow filter. 
+ * 
+ * See the description for @ref AEC_LIB_MAX_PHASES for more details on how total phases are calculated.
+ * 
+ * @ingroup aec_defines
+ */
+#define AEC_LIB_MAX_SHADOW_PHASES (AEC_MAX_Y_CHANNELS * AEC_MAX_X_CHANNELS * AEC_SHADOW_FILTER_PHASES)
+
+
+
 /** Overlap data length
  *
  * @ingroup aec_defines

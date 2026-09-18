@@ -4,8 +4,10 @@
 #define pipeline_config_h_
 
 #include "aec.h"
+#include "stage1.h"
 
-#define AP_MAX_Y_CHANNELS (AEC_MAX_Y_CHANNELS)
+// Stage1 uses 2 Y channels in alt arch mode, and the number of AEC channels otherwise
+#define AP_MAX_Y_CHANNELS (STAGE1_MAX_Y_CHANNELS)
 #define AP_MAX_X_CHANNELS (AEC_MAX_X_CHANNELS)
 #define AP_FRAME_ADVANCE  (AEC_FRAME_ADVANCE)
 

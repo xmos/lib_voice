@@ -166,7 +166,7 @@ def process_audio(input_data, test_name, target):
         input_file = tmp_path / "input.wav"
         sf.write(input_file, input_32bit.T, sample_rate, "PCM_32")
 
-        AEC_MAX_Y_CHANNELS = 2
+        AEC_MAX_Y_CHANNELS = 1
         output_file = tmp_path / "output.wav"
         test_wav(xe_path, input_file, output_file, frame_advance, AEC_MAX_Y_CHANNELS, frame_advance, target=target, tmp_folder=tmp_folder)
 
@@ -186,7 +186,8 @@ def test_input(request):
     noise = audio_generation.get_noise(duration=10, db=-20)
     audio_x, audio_y = filters.convolve(test_case.aud_x, test_case.aud_y,
                                         test_case.h_x, test_case.h_y)
-    combined_data = np.vstack((audio_y, audio_y, audio_x, audio_x))
+    # One mic and one reference channel, matching the 1 y / 1 x AEC configuration this test builds
+    combined_data = np.vstack((audio_y, audio_x))
     if np.max(np.abs(audio_x)) > 1:
         warnings.warn("{}: max(abs(Mic 1)) == {}".format(test_name, np.max(np.abs(audio_x))))
     if np.max(np.abs(audio_y)) > 1:

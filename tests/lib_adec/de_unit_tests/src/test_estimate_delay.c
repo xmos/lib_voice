@@ -7,10 +7,10 @@
 #include "aec.h"
 #include "adec.h"
 
-//Note this is larger than AEC_LIB_MAIN_FILTER_PHASES but AEC_MAX_Y_CHANNELS and AEC_MAX_X_CHANNELS are 2 so it works..
-//i.e. 30 <= 10 * 2 * 2
 #define NUM_PHASES_DELAY_EST    30
 #define PHASE_CMPLX_AIR_LEN     257
+
+extern aec_task_distribution_t tdist;
 
 typedef struct {
     double re;
@@ -73,7 +73,7 @@ void test_delay_estimate() {
     //Populate selected phase with energy to see if we can read peak
     de_output_t de_output;
     for(unsigned ph = 0; ph < num_phases; ph++){
-        aec_init(&aec_state, 1, 1, num_phases, 0, &aec_tdist_chans2_threads2);
+        aec_init(&aec_state, 1, 1, num_phases, 0, &tdist);
         memset(H_hat, 0, sizeof(H_hat));
 
         unsigned length = aec_state.main_state.H_hat[ch][ph].length;
@@ -128,7 +128,7 @@ void test_delay_estimate() {
 
     //Now try a few corner cases
 
-    aec_init(&aec_state, 1, 1, num_phases, 0, &aec_tdist_chans2_threads2);
+    aec_init(&aec_state, 1, 1, num_phases, 0, &tdist);
     memset(H_hat, 0, sizeof(H_hat));
 
     double sum_phase_powers;

@@ -1,6 +1,7 @@
 // Copyright 2022-2026 XMOS LIMITED.
 // This Software is subject to the terms of the XMOS Public Licence: Version 1.
 
+#include <assert.h>
 #include "aec.h"
 #include "adec.h"
 
@@ -9,6 +10,9 @@ void adec_estimate_delay (
         const bfp_complex_s32_t* H_hat,
         unsigned num_phases)
 {
+    //de_output_t::phase_power is sized for the compile time maximum phase count
+    assert(num_phases <= AEC_LIB_MAX_PHASES);
+
     //Direct manipulation of mant/exp because f64_to_float_s32(0.0) takes hundreds of cycles
     const float_s32_t zero = {0, 0};
     const float_s32_t one = {1, 0};

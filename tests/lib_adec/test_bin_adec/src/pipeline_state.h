@@ -8,8 +8,18 @@
 #include "delay_buffer.h"
 #include "stage1.h"
 
+
+#ifndef AP_MAX_Y_CHANNELS
 #define AP_MAX_Y_CHANNELS (AEC_MAX_Y_CHANNELS)
+#endif
+#ifndef AP_MAX_X_CHANNELS
 #define AP_MAX_X_CHANNELS (AEC_MAX_X_CHANNELS)
+#endif
+
+_Static_assert(AP_MAX_Y_CHANNELS >= AEC_MAX_Y_CHANNELS,
+        "The wav cannot carry fewer mic channels than the AEC is built to process");
+_Static_assert(AP_MAX_X_CHANNELS >= AEC_MAX_X_CHANNELS,
+        "The wav cannot carry fewer reference channels than the AEC is built to process");
 #define AP_FRAME_ADVANCE  (AEC_FRAME_ADVANCE)
 #define AP_MAX_CHANNELS ((AP_MAX_Y_CHANNELS > AP_MAX_X_CHANNELS) ? (AP_MAX_Y_CHANNELS) : (AP_MAX_X_CHANNELS) )
 

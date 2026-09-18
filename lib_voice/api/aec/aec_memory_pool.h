@@ -27,7 +27,7 @@
  * - @ref AEC_SHADOW_FILTER_PHASES
  *
  * The same pool can be used to initialize AEC for any runtime configuration (passed as arguments to `aec_init()`)
- * that is a subset of the compile-time configuration (See @ref aec_phase_pool_capacity).
+ * which satisfies @ref aec_phase_pool_capacity.
  *
  * @note
  * This structure exists to own memory, not to describe layout.
@@ -86,8 +86,8 @@ typedef struct {
  * - @ref AEC_MAIN_FILTER_PHASES
  * - @ref AEC_SHADOW_FILTER_PHASES
  *
- * The same pool can be used to initialize AEC for any runtime configuration (passed as arguments to `aec_init()`)
- * that is a subset of the compile-time configuration (See @ref aec_phase_pool_capacity).
+ * The same pool can be used to initialize AEC (or shadow filter) for any runtime configuration
+ * (passed as arguments to `aec_init()`) which satisfies @ref aec_phase_pool_capacity.
  *
  * @note
  * This structure exists to own memory, not to describe layout.
@@ -120,4 +120,46 @@ typedef struct {
     /** Memory pointed to by shadow filter aec_filter_state_t::overlap*/
     int32_t overlap[AEC_MAX_Y_CHANNELS][AEC_UNUSED_TAPS_PER_PHASE*2];
 }aec_shadow_filt_memory_pool_t;
+
+/**
+ * @brief Bytes `aec_init()` takes from @ref aec_memory_pool_t for a runtime configuration.
+ *
+ * This is a compile time constant for compile time arguments, so it can be used in a
+ * `_Static_assert` to check a fixed runtime configuration against the pool. 
+ * 
+ * AEC_MAIN_POOL_BYTES(num_y, num_x, num_main_phases) must always be <= sizeof(aec_memory_pool_t)
+ * 
+ * @ingroup aec_memory_pool
+ */
+#define AEC_MAIN_POOL_BYTES(num_y, num_x, num_main_phases) ( \
+      ((num_y) + (num_x)) * (AEC_PROC_FRAME_LENGTH + AEC_FFT_PADDING) * sizeof(int32_t) \
+    + ((num_y) + (num_x)) * (AEC_PROC_FRAME_LENGTH - AEC_FRAME_ADVANCE) * sizeof(int32_t) \
+    + (num_y) * (num_x) * (num_main_phases) * AEC_FD_FRAME_LENGTH * sizeof(complex_s32_t) \
+    + (num_x) * (num_main_phases) * AEC_FD_FRAME_LENGTH * sizeof(complex_s32_t) \
+    + 2 * (num_y) * AEC_FD_FRAME_LENGTH * sizeof(complex_s32_t) \
+    + 3 * (num_x) * AEC_FD_FRAME_LENGTH * sizeof(int32_t) \
+    + (num_y) * (AEC_UNUSED_TAPS_PER_PHASE * 2) * sizeof(int32_t) )
+
+/**
+ * @brief Bytes `aec_init()` takes from @ref aec_shadow_filt_memory_pool_t for a runtime
+ * configuration. See @ref AEC_MAIN_POOL_BYTES.
+ *
+ * @ingroup aec_memory_pool
+ */
+#define AEC_SHADOW_POOL_BYTES(num_y, num_x, num_shadow_phases) ( \
+      (num_y) * (num_x) * (num_shadow_phases) * AEC_FD_FRAME_LENGTH * sizeof(complex_s32_t) \
+    + (2 * (num_y) + (num_x)) * AEC_FD_FRAME_LENGTH * sizeof(complex_s32_t) \
+    + 2 * (num_x) * AEC_FD_FRAME_LENGTH * sizeof(int32_t) \
+    + (num_y) * (AEC_UNUSED_TAPS_PER_PHASE * 2) * sizeof(int32_t) )
+
+/* Assert that the compile-time pool sizes match the calculated byte requirements for the maximum
+configuration */
+_Static_assert(AEC_MAIN_POOL_BYTES(AEC_MAX_Y_CHANNELS, AEC_MAX_X_CHANNELS, AEC_MAIN_FILTER_PHASES)
+                == sizeof(aec_memory_pool_t),
+        "AEC_MAIN_POOL_BYTES() no longer matches aec_memory_pool_t - update it to match the "
+        "allocations made by aec_priv_main_init()");
+_Static_assert(AEC_SHADOW_POOL_BYTES(AEC_MAX_Y_CHANNELS, AEC_MAX_X_CHANNELS, AEC_SHADOW_FILTER_PHASES)
+                == sizeof(aec_shadow_filt_memory_pool_t),
+        "AEC_SHADOW_POOL_BYTES() no longer matches aec_shadow_filt_memory_pool_t - update it to "
+        "match the allocations made by aec_priv_shadow_init()");
 #endif

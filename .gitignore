@@ -34,7 +34,10 @@ filesystem_support/target-xn*
 **/test_*.log
 *.bin
 examples/**/*.png
-test/**/*.png
+tests/**/*.png
+tests/**/*.wav
+tests/**/*.log
+tests/**/*out*
 
 # macOS cruft
 .DS_Store
