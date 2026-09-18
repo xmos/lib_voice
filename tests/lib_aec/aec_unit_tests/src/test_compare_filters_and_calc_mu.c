@@ -411,7 +411,6 @@ void compare_filter_fp(
     double *overall_Error = params->overall_Error;
     double *overall_Error_shadow = params->overall_Error_shadow;
     double *overall_Input = params->overall_Y;
-    double *sum_X_energy = params->sum_X_energy;
 
     //# check if shadow or reference filter will be used and flag accordingly
     for(int ch=0; ch<params->y_channels; ch++) {

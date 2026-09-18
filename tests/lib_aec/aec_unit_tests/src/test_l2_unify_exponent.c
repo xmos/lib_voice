@@ -13,7 +13,7 @@
 void test_bfp_complex_s32_l2_unify_exponent() {
     complex_s32_t mem[NUM_SUBGROUPS][LENGTH_PER_SUBGROUP];
     bfp_complex_s32_t chunks[NUM_CHUNKS];
-    int chunk_subgroup_mapping[NUM_CHUNKS];
+    uint32_t chunk_subgroup_mapping[NUM_CHUNKS];
 
     complex_double_t mem_float[NUM_SUBGROUPS][LENGTH_PER_SUBGROUP];
 
@@ -55,7 +55,8 @@ void test_bfp_complex_s32_l2_unify_exponent() {
             //printf("chunk %d, subgroup %d. exp %d, hr %d, length %d\n", c, subgroup, chunks[c].exp, chunks[c].hr, chunks[c].length);
         }
 
-        int final_exp, final_hr;
+        int32_t final_exp;
+        uint32_t final_hr;
         bfp_complex_s32_t unified[NUM_SUBGROUPS];
         if(!null_mapping) {
             for(int sb=0; sb<NUM_SUBGROUPS; sb++) {
@@ -128,7 +129,7 @@ void test_bfp_complex_s32_l2_unify_exponent() {
 void test_bfp_s32_l2_unify_exponent() {
     int32_t mem[NUM_SUBGROUPS][LENGTH_PER_SUBGROUP];
     bfp_s32_t chunks[NUM_CHUNKS];
-    int chunk_subgroup_mapping[NUM_CHUNKS];
+    uint32_t chunk_subgroup_mapping[NUM_CHUNKS];
 
     double mem_float[NUM_SUBGROUPS][LENGTH_PER_SUBGROUP];
 
@@ -168,7 +169,8 @@ void test_bfp_s32_l2_unify_exponent() {
             //printf("chunk %d, subgroup %d. exp %d, hr %d, length %d\n", c, subgroup, chunks[c].exp, chunks[c].hr, chunks[c].length);
         }
 
-        int final_exp, final_hr;
+        int32_t final_exp;
+        uint32_t final_hr;
         bfp_s32_t unified[NUM_SUBGROUPS];
         if(!null_mapping) {
             for(int sb=0; sb<NUM_SUBGROUPS; sb++) {

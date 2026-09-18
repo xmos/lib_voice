@@ -15,5 +15,5 @@ void test_init()
 
 void test(int32_t *output, int32_t *input) {
     //log2 output is always 8.24
-    vnr_priv_log2(&output[0], (float_s32_t*)input, VNR_MEL_FILTERS);
+    vnr_priv_log2((uq8_24*)&output[0], (float_s32_t*)input, VNR_MEL_FILTERS);
 }

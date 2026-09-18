@@ -27,7 +27,7 @@ void test_detect_input_activity() {
     double ref_active_threshold = pow(10, active_threshold_dB/20.0);
     float_s32_t dut_active_threshold = f64_to_float_s32(ref_active_threshold);
 
-    uint32_t seed = 43554;
+    unsigned seed = 43554;
 
     // Test: all values 0.activity should be 0
     for(int ch=0; ch<CHANNELS; ch++) {
@@ -38,6 +38,7 @@ void test_detect_input_activity() {
     }
     ref_active = detect_input_activity_fp(ref, ref_active_threshold, CHANNELS);
     dut_active = aec_detect_input_activity(dut, dut_active_threshold, CHANNELS);
+    assert(dut_active == ref_active);
     if(dut_active != 0) {
         printf("test: all values 0. FAIL. dut detected active\n");
         assert(0);
@@ -58,6 +59,7 @@ void test_detect_input_activity() {
     }
     ref_active = detect_input_activity_fp(ref, ref_active_threshold, CHANNELS);
     dut_active = aec_detect_input_activity(dut, dut_active_threshold, CHANNELS);
+    assert(dut_active == ref_active);
     if(dut_active != 0) {
         printf("test: all values between -thresh,+thresh. FAIL. dut detected active\n");
         assert(0);
@@ -82,6 +84,7 @@ void test_detect_input_activity() {
     ref[m][n] = ldexp(dut[m][n], -31);
     ref_active = detect_input_activity_fp(ref, ref_active_threshold, CHANNELS);
     dut_active = aec_detect_input_activity(dut, dut_active_threshold, CHANNELS);
+    assert(dut_active == ref_active);
     if(dut_active != 1) {
         printf("test: 1 value above thresh. FAIL. dut detected inactive\n");
         assert(0);
@@ -106,6 +109,7 @@ void test_detect_input_activity() {
     ref[m][n] = ldexp(dut[m][n], -31);
     ref_active = detect_input_activity_fp(ref, ref_active_threshold, CHANNELS);
     dut_active = aec_detect_input_activity(dut, dut_active_threshold, CHANNELS);
+    assert(dut_active == ref_active);
     if(dut_active != 1) {
         printf("test: 1 value above thresh. FAIL. dut detected inactive\n");
         assert(0);

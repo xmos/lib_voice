@@ -142,6 +142,10 @@ void test_delay_estimate() {
     double dut_peak_to_average_ratio_fp = ldexp(de_output.peak_to_average_ratio.mant, de_output.peak_to_average_ratio.exp);
     printf("peak_to_average_ratio ref: %lf dut: %lf\n", peak_to_average_ratio, dut_peak_to_average_ratio_fp);
 
+    //With no energy in H, delay estimate should default to phase 0 for both DUT and REF
+    TEST_ASSERT_EQUAL_INT32_MESSAGE(de_output.measured_delay_samples, 0, "DUT Delay estimate incorrect for zero-energy corner case");
+    TEST_ASSERT_EQUAL_INT32_MESSAGE(measured_delay_fp, 0, "REF Delay estimate incorrect for zero-energy corner case");
+
     //Even though zero, should come out to 1 as no energy in H
     TEST_ASSERT_FLOAT_WITHIN_MESSAGE(0.0, 1.0, (float)dut_peak_to_average_ratio_fp, "dut_peak_to_average_ratio_fp incorrect");
     TEST_ASSERT_FLOAT_WITHIN_MESSAGE(0.0, 1.0, (float)peak_to_average_ratio, "peak_to_average_ratio incorrect");

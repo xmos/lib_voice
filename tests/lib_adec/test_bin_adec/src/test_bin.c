@@ -200,10 +200,10 @@ void pipeline_wrapper(const char *input_file_name, const char* output_file_name)
         file_write(&output_file, (uint8_t*)pipeline_output, (AEC_MAX_Y_CHANNELS * AEC_FRAME_ADVANCE * sizeof(int32_t)));
 
         char strbuf[100];
-        sprintf(strbuf, "%ld\n", pipeline_state.adec_requested_delay_samples);
+        sprintf(strbuf, "%d\n", pipeline_state.adec_requested_delay_samples);
         file_write(&req_delay_file, (uint8_t*)strbuf,  strlen(strbuf));
 
-        sprintf(strbuf, "%ld\n", pipeline_state.de_output_measured_delay_samples);
+        sprintf(strbuf, "%d\n", pipeline_state.de_output_measured_delay_samples);
         file_write(&measured_delay_file, (uint8_t*)strbuf,  strlen(strbuf));
     }
     file_close(&input_file);

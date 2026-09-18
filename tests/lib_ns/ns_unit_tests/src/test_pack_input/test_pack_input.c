@@ -33,8 +33,6 @@ TEST(ns_priv_pack_input, case0){
     int32_t ex_prev [NS_PROC_FRAME_LENGTH - NS_FRAME_ADVANCE];
 
     int32_t input_int [NS_FRAME_ADVANCE];
-    float_s32_t input_fl;
-
 
     for(int i = 0; i < 1; i++){
         bfp_s32_t curr;
