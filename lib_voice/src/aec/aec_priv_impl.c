@@ -864,8 +864,7 @@ void aec_priv_calc_inv_X_energy_denom(
         const bfp_s32_t *sigma_XX,
         const aec_config_params_t *conf,
         float_s32_t delta,
-        unsigned is_shadow,
-        unsigned normdenom_apply_factor_of_2) {
+        unsigned is_shadow) {
 
     int gamma_log2 = conf->aec_core_conf.gamma_log2;
     if(!is_shadow) { //frequency smoothing
@@ -876,13 +875,9 @@ void aec_priv_calc_inv_X_energy_denom(
         bfp_s32_t sigma_times_gamma;
         bfp_s32_init(&sigma_times_gamma, sigma_XX->data, sigma_XX->exp+gamma_log2, sigma_XX->length, 0);
         sigma_times_gamma.hr = sigma_XX->hr;
-        //TODO 3610 AEC calculates norm_denom as normDenom = 2*self.X_energy[:,k] + self.sigma_xx*gamma
-        //instead of normDenom = self.X_energy[:,k] + self.sigma_xx*gamma and ADEC tests pass only with the former.
-        bfp_s32_t temp = *X_energy;
-        if(normdenom_apply_factor_of_2) {
-            temp.exp = temp.exp+1;
-        }
-        bfp_s32_add(&norm_denom, &sigma_times_gamma, &temp);
+
+        // normDenom = avg(sigma_XX)*gamma + sum(X_energy) [cross-channel values passed in by caller]
+        bfp_s32_add(&norm_denom, &sigma_times_gamma, X_energy);
 
         //self.taps = [0.5, 1, 1, 1, 0.5]
         uq2_30 taps_q30[5] = {0x20000000, 0x40000000, 0x40000000, 0x40000000, 0x20000000};
@@ -897,13 +892,6 @@ void aec_priv_calc_inv_X_energy_denom(
     }
     else
     {
-        //TODO maybe fix this for AEC?
-        // int32_t temp[AEC_PROC_FRAME_LENGTH/2 + 1];
-        // bfp_s32_t temp_bfp;
-        // bfp_s32_init(&temp_bfp, &temp[0], 0, AEC_PROC_FRAME_LENGTH/2+1, 0);
-
-        // bfp_complex_s32_real_scale(&temp, sigma_XX, gamma)
-
         bfp_s32_add_scalar(inv_X_energy_denom, X_energy, delta);
     }
 
@@ -934,21 +922,20 @@ void aec_priv_calc_inv_X_energy_denom(
      }
 }
 
-// For aec, to get adec tests passing norm_denom in aec_priv_calc_inv_X_energy_denom is calculated as
-// normDenom = 2*self.X_energy[:,k] + self.sigma_xx*gamma while in IC its done as
-// normDenom = self.X_energy[:,k] + self.sigma_xx*gamma. To work around this, an extra argument normdenom_apply_factor_of_2
-// is added to aec_priv_calc_inv_X_energy. When set to 1, X_energy is multiplied by 2 in the inverse energy calculation.
+// Compute the inverse of the normalisation energy spectrum.
+// For both main and shadow: X_energy should be the cross-channel sum.
+// For main filter: sigma_XX is the cross-channel average.
+// For shadow filter: sigma_XX is NULL (not used).
 void aec_priv_calc_inv_X_energy(
         bfp_s32_t *inv_X_energy,
         const bfp_s32_t *X_energy,
         const bfp_s32_t *sigma_XX,
         const aec_config_params_t *conf,
         float_s32_t delta,
-        unsigned is_shadow,
-        unsigned normdenom_apply_factor_of_2)
+        unsigned is_shadow)
 {
     // Calculate denom for the inv_X_energy = 1/denom calculation. denom calculation is different for shadow and main filter
-    aec_priv_calc_inv_X_energy_denom(inv_X_energy, X_energy, sigma_XX, conf, delta, is_shadow, normdenom_apply_factor_of_2);
+    aec_priv_calc_inv_X_energy_denom(inv_X_energy, X_energy, sigma_XX, conf, delta, is_shadow);
     aec_priv_calc_inverse(inv_X_energy);
 }
 

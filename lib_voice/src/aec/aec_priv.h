@@ -434,8 +434,7 @@ void aec_priv_calc_inv_X_energy_denom(
         const bfp_s32_t *sigma_XX,
         const aec_config_params_t *conf,
         float_s32_t delta,
-        unsigned is_shadow,
-        unsigned normdenom_apply_factor_of_2);
+        unsigned is_shadow);
 
 void aec_priv_calc_inv_X_energy(
         bfp_s32_t *inv_X_energy,
@@ -443,8 +442,7 @@ void aec_priv_calc_inv_X_energy(
         const bfp_s32_t *sigma_XX,
         const aec_config_params_t *conf,
         float_s32_t delta,
-        unsigned is_shadow,
-        unsigned normdenom_apply_factor_of_2);
+        unsigned is_shadow);
 
 void aec_priv_filter_adapt(
         bfp_complex_s32_t *H_hat,
