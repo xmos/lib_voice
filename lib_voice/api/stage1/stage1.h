@@ -24,6 +24,15 @@
 #endif
 
 
+/** Compile out ADEC/delay-estimation, leaving a fixed delay applied via the delay buffer
+ *
+ * @ingroup stage1_types
+ */
+#ifndef STAGE1_DISABLE_ADEC
+#define STAGE1_DISABLE_ADEC (0)
+#endif
+
+
 /** Limit in seconds for which AEC is kept enabled after detecting reference as inactive.
  *  Used only in alt arch configuration.
  *
