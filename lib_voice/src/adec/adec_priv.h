@@ -9,12 +9,12 @@
 #define ADEC_ERLE_GOOD_BITS                     2.0              //6dB
 #define ADEC_ERLE_BAD_GAIN                      0.0625           //When ERLE goes below the threshold, how steep is the curve that reduces goodness
 #define ADEC_PEAK_PHASE_ENERGY_TREND_GAIN       3.0              //How sensitve we are to the peak phase energy trend, multiplier
-#define ADEC_PEAK_TO_AVERAGE_GOOD_AEC           f32_to_float_s32(4.0)//Denormalised 4.0 - AEC only has 10 phases so pk:ave 
+#define ADEC_PEAK_TO_AVERAGE_GOOD_AEC           f32_to_float_s32(5.0)//py_voice aec_mode_delay_esimation_peak_to_average_ratio. Used for in-AEC-mode delay detect + watchdog
 #define ADEC_PEAK_TO_AVERAGE_GOOD_DE            f32_to_float_s32(8.0)//Denormalised 8.0 - With 30 phases, it's easier to get a strong pk
 #define ADEC_PEAK_TO_AVERAGE_RUINED_AEC         f32_to_float_s32(2.0)//Denormalised 2.0 - Used with watchdog.
 
 
-#define ADEC_PK_AVE_POOR_WATCHDOG_SECONDS       30               //How long before we trigger DE mode if we haven't reached a good state after AEC reset
+#define ADEC_PK_AVE_POOR_WATCHDOG_SECONDS       15               //py_voice aec_mode_watchdog_timeout_s - how long before watchdog tanks goodness if AEC never reached a good state
 
 #define ADEC_MODEL_TO_XCORE_SCALE_BITS          8                //TODO - work out why xcore phase magnitudes are this much bigger than the model
 
@@ -25,8 +25,10 @@
 #define ADEC_DE_DELAY_HEADROOM_SAMPS            240              //Number of samples padding to ensure that mics are always after reference. 240 = one phase
 #define ADEC_PEAK_LINREG_DECIMATE_RATIO         11               //Reduce computation when calculating slope, must be a factor of ADEC_PEAK_LINREG_HISTORY_SIZE.
 
-#define ADEC_CONVERGENCE_COUNTER_LIMIT          (66*5)           //Number of frames to hold off the ADEC while the shadow filter attempts to converge
+#define ADEC_CONVERGENCE_COUNTER_LIMIT          200              //Number of frames to hold off the ADEC while the shadow filter attempts to converge (py_voice convergence_counter_limit)
 #define ADEC_SHADOW_FLAG_COUNTER_LIMIT          3                //Number of times shadow filter needs to be better before calculating new delay
+#define ADEC_ERLE_RESET_CC_GUARD                30               //Minimum convergence_counter before allowing ERLE-based AGM reset (avoids post-shadow false positives)
+#define ADEC_AGM_DEEPLY_NEGATIVE                FLOAT_TO_Q24(-5.0) //Deeply negative AGM threshold for slow-path DE trigger
 
 #define MILLISECONDS_TO_SAMPLES(ms) (ms * (16000 / 1000))
 

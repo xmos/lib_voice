@@ -132,6 +132,8 @@ typedef struct {
     int32_t sf_copy_flag; ///< Flag indicating if shadow to main filter copy has happened at least once in the AEC
     int32_t convergence_counter; ///< Counter indicating number of frames the AEC shadow filter has been attempting to converge.
     int32_t shadow_flag_counter; ///< Counter indicating number of frame the AEC shadow filter has been better than the main filter.
+    int32_t had_erle_reset; ///< Flag indicating that a proven good ERLE measurement has been seen (with convergence guard)
+    float_s32_t peak_p2a_in_aec_period; ///< Maximum peak-to-average ratio seen in the current AEC period (not reset on shadow events)
     adec_config_t adec_config; ///< ADEC configuration parameters structure. Can be modified by application at run-time to reconfigure ADEC.
 } adec_state_t;
 

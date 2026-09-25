@@ -3,6 +3,7 @@
 #include "aec_unit_tests.h"
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "aec.h"
 
 #define NUM_BINS ((AEC_PROC_FRAME_LENGTH/2) + 1)
@@ -70,13 +71,39 @@ static void vect_smooth(double *output, double *scratch, const double *norm_deno
     }
 }
 
-void aec_calc_normalisation_spectrum_fp(double *inv_X_energy, double *X_energy, double *sigma_XX, double gamma_log2, double delta, int is_shadow) {
+void aec_calc_normalisation_spectrum_fp(double *inv_X_energy, double X_energy_all[][NUM_BINS], double sigma_XX_all[][NUM_BINS], int num_x_channels, double gamma_log2, double delta, int is_shadow) {
     double norm_denom[NUM_BINS], scratch[NUM_BINS];
     double gamma = pow(2.0, gamma_log2);
     double taps[5] = {0.5, 1, 1, 1, 0.5};
-    if(!is_shadow) {
+
+    // Sum X_energy across x-channels
+    double sum_X_energy[NUM_BINS];
+    for(int i=0; i<NUM_BINS; i++) {
+        sum_X_energy[i] = X_energy_all[0][i];
+    }
+    for(int xch=1; xch<num_x_channels; xch++) {
         for(int i=0; i<NUM_BINS; i++) {
-            norm_denom[i] = sigma_XX[i]*gamma + (X_energy[i]);
+            sum_X_energy[i] += X_energy_all[xch][i];
+        }
+    }
+
+    if(!is_shadow) {
+        // Average sigma_XX across x-channels
+        double avg_sigma_XX[NUM_BINS];
+        for(int i=0; i<NUM_BINS; i++) {
+            avg_sigma_XX[i] = sigma_XX_all[0][i];
+        }
+        for(int xch=1; xch<num_x_channels; xch++) {
+            for(int i=0; i<NUM_BINS; i++) {
+                avg_sigma_XX[i] += sigma_XX_all[xch][i];
+            }
+        }
+        for(int i=0; i<NUM_BINS; i++) {
+            avg_sigma_XX[i] /= num_x_channels;
+        }
+
+        for(int i=0; i<NUM_BINS; i++) {
+            norm_denom[i] = avg_sigma_XX[i]*gamma + sum_X_energy[i];
         }
         vect_smooth(inv_X_energy, scratch, norm_denom, taps, NUM_BINS);
         for(int i=0; i<NUM_BINS; i++) {
@@ -85,7 +112,7 @@ void aec_calc_normalisation_spectrum_fp(double *inv_X_energy, double *X_energy, 
     }
     else {
         for(int i=0; i<NUM_BINS; i++) {
-            inv_X_energy[i] = X_energy[i] + delta;
+            inv_X_energy[i] = sum_X_energy[i] + delta;
         }
     }
     for(int i=0; i<NUM_BINS; i++) {
@@ -161,19 +188,22 @@ void test_aec_calc_normalisation_spectrum() {
                 state_ptr->shared_state->sigma_XX[ch].data[i] = (pseudo_rand_int32(&seed) & 0x7fffffff) >> state_ptr->shared_state->sigma_XX[ch].hr; //sigma_XX is positive
                 sigma_XX_fp[ch][i] = ldexp(state_ptr->shared_state->sigma_XX[ch].data[i], state_ptr->shared_state->sigma_XX[ch].exp);
             }
-            state_ptr->delta.exp = -32 - (pseudo_rand_uint32(&seed) & 63);
-            state_ptr->delta.mant = pseudo_rand_int32(&seed) & 0x7fffffff;
-            if(state_ptr->delta.mant == 0) {
-                state_ptr->delta = state_ptr->shared_state->config_params.aec_core_conf.delta_min;
-            }
+        }
+        state_ptr->delta.exp = -32 - (pseudo_rand_uint32(&seed) & 63);
+        state_ptr->delta.mant = pseudo_rand_int32(&seed) & 0x7fffffff;
+        if(state_ptr->delta.mant == 0) {
+            state_ptr->delta = state_ptr->shared_state->config_params.aec_core_conf.delta_min;
+        }
 
-            double delta_fp = ldexp(state_ptr->delta.mant, state_ptr->delta.exp);
-            for(int ch=0; ch<num_x_channels; ch++) {
-                aec_calc_normalisation_spectrum_fp(inv_X_energy_fp[ch], X_energy_fp[ch], sigma_XX_fp[ch], 5, delta_fp, is_shadow);
-            }
-            for(int ch=0; ch<num_x_channels; ch++) {
-                aec_calc_normalisation_spectrum(state_ptr, ch, is_shadow);
-            }
+        double delta_fp = ldexp(state_ptr->delta.mant, state_ptr->delta.exp);
+        // Compute cross-channel reference (same result for all channels)
+        aec_calc_normalisation_spectrum_fp(inv_X_energy_fp[0], X_energy_fp, sigma_XX_fp, num_x_channels, 5, delta_fp, is_shadow);
+        for(int ch=1; ch<num_x_channels; ch++) {
+            memcpy(inv_X_energy_fp[ch], inv_X_energy_fp[0], NUM_BINS * sizeof(double));
+        }
+        // Run DUT
+        for(int ch=0; ch<num_x_channels; ch++) {
+            aec_calc_normalisation_spectrum(state_ptr, ch, is_shadow);
         }
         for(int ch=0; ch<num_x_channels; ch++) {
             unsigned diff = vector_int32_maxdiff((int32_t*)&state_ptr->inv_X_energy[ch].data[0], state_ptr->inv_X_energy[ch].exp, (double*)inv_X_energy_fp[ch], 0, NUM_BINS);

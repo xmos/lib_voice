@@ -39,5 +39,5 @@ xscope-fileio==1.3.1
 # setup.py file, e.g., '-e .' or '-e ./python' (without the quotes).
 -e ./shared/python
 git+ssh://git@github.com/xmos/audio_test_tools@v4.6.0#egg=audio_test_tools&subdirectory=python
-git+ssh://git@github.com/xmos/py_voice@v1.2.1#egg=py_voice
+git+ssh://git@github.com/xmos/py_voice@feature/stereo_aec_fix#egg=py_voice
 git+ssh://git@github0.xmos.com/xmos-int/xtagctl@v3.0.0#egg=xtagctl
