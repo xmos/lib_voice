@@ -204,4 +204,24 @@ float_s32_t aec_calc_corr_factor(
         aec_filter_state_t *state,
         unsigned ch);
 
+/** @brief Find where a time domain filter tap lives within a stored filter phase
+ *
+ * The taps of an aec_filter_state_t::h_hat phase are not stored in time order - they are permuted into the
+ * bit-reversed index order the FFT works in, which lets the AEC skip the index bit-reversal pass on both of the
+ * per-phase transforms it does every frame. This function maps a tap's position in the impulse response to its
+ * position in the stored phase, so that code reading or writing the filter can account for the permutation:
+ *
+ * \code
+ *      // read tap n of the impulse response of phase ph
+ *      int16_t tap = state->h_hat[ch][ph].data[aec_h_hat_tap_index(n)];
+ * \endcode
+ *
+ * @param[in] n Position of the tap in the filter phase's impulse response, less than @ref AEC_FRAME_ADVANCE
+ * @returns Index of that tap within the stored filter phase
+ *
+ * @ingroup aec_func
+ *
+ */
+unsigned aec_h_hat_tap_index(unsigned n);
+
 #endif

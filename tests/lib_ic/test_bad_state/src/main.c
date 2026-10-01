@@ -10,7 +10,7 @@
 #include "xmath/xmath.h"
 #include "ic_defines.h"
 
-extern void test_init(int32_t adapt_conf, int32_t * H_data);
+extern void test_init(int32_t adapt_conf, int32_t h_hat_exp, int32_t * h_data);
 extern void test(int32_t *output, int32_t * y_frame, int32_t * x_frame);
 void test_bad_state(const char *conf_file_name, const char *input_file_name, const char *output_file_name)
 {
@@ -25,18 +25,21 @@ void test_bad_state(const char *conf_file_name, const char *input_file_name, con
     ret = file_open(&output_file, output_file_name, "wb");
     assert((!ret) && "Failed to open file");
 
-    // Read the data to initialise filter
-    int num_words_H_py, adapt_mode;
-    // Num words to accomodate H_hat data
-    int num_words_H_c = IC_Y_CHANNELS * IC_FD_FRAME_LENGTH * IC_FILTER_PHASES * 2;
-    file_read(&conf_file, &num_words_H_py, sizeof(int32_t));
-    assert((num_words_H_py == num_words_H_c) && "num_words_h does not match with python");
+    // Read the data to initialise filter. The filter is time domain, so this is one tap per word, in time order,
+    // at a shared exponent python picks to suit the taps. The taps themselves are int16 valued - they go into the
+    // IC's 16 bit filter - but stay one per int32 word here so the conf file is a flat word array.
+    int num_taps_py, adapt_mode, h_hat_exp;
+    // Num words to accomodate h_hat data
+    int num_taps_c = IC_Y_CHANNELS * IC_X_CHANNELS * IC_FILTER_PHASES * IC_FRAME_ADVANCE;
+    file_read(&conf_file, &num_taps_py, sizeof(int32_t));
+    assert((num_taps_py == num_taps_c) && "num_taps does not match with python");
     file_read(&conf_file, &adapt_mode, sizeof(int32_t));
-    printf("num_words_H=%d, adapt_mode=%d\n", num_words_H_py, adapt_mode);
+    file_read(&conf_file, &h_hat_exp, sizeof(int32_t));
+    printf("num_taps=%d, adapt_mode=%d, h_hat_exp=%d\n", num_taps_py, adapt_mode, h_hat_exp);
 
-    int32_t H_hat_data[num_words_H_py];
-    file_read(&conf_file, &H_hat_data[0], num_words_H_py * sizeof(int32_t));
-    test_init(adapt_mode, H_hat_data);
+    int32_t h_hat_data[num_taps_py];
+    file_read(&conf_file, &h_hat_data[0], num_taps_py * sizeof(int32_t));
+    test_init(adapt_mode, h_hat_exp, h_hat_data);
 
     // has to be 2 channels
     int file_size = get_file_size(&input_file);

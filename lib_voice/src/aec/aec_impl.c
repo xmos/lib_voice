@@ -208,7 +208,7 @@ void aec_calc_Error_and_Y_hat(
     bfp_complex_s32_t *Y_hat_ptr = &state->Y_hat[ch];
     bfp_complex_s32_t *Error_ptr = &state->Error[ch];
     int32_t bypass_enabled = state->shared_state->config_params.aec_core_conf.bypass;
-    aec_priv_calc_Error_and_Y_hat(Error_ptr, Y_hat_ptr, Y_ptr, state->X_fifo_1d, state->H_hat[ch], state->shared_state->num_x_channels, state->num_phases, bypass_enabled);
+    aec_priv_calc_Error_and_Y_hat(Error_ptr, Y_hat_ptr, Y_ptr, state->X_fifo_1d, state->h_hat[ch], state->shared_state->num_x_channels, state->num_phases, bypass_enabled);
 }
 
 void aec_inverse_fft(
@@ -325,7 +325,7 @@ void aec_filter_adapt(
     }
     bfp_complex_s32_t *T_ptr = &state->T[0];
 
-    aec_priv_filter_adapt(state->H_hat[y_ch], state->X_fifo_1d, T_ptr, state->shared_state->num_x_channels, state->num_phases);
+    aec_priv_filter_adapt(state->h_hat[y_ch], state->X_fifo_1d, T_ptr, state->shared_state->num_x_channels, state->num_phases);
 }
 
 void aec_calc_T(
@@ -403,18 +403,18 @@ void aec_reset_state(aec_state_t *aec_state){
     uint32_t x_channels = shared_state->num_x_channels;
     uint32_t main_phases = main_state->num_phases;
     uint32_t shadow_phases = shadow_state->num_phases;
-    //Main H_hat
+    //Main h_hat
     for(int ch=0; ch<y_channels; ch++) {
         for(int ph=0; ph<x_channels*main_phases; ph++) {
-            main_state->H_hat[ch][ph].exp = AEC_ZEROVAL_EXP;
-            main_state->H_hat[ch][ph].hr = AEC_ZEROVAL_HR;
+            main_state->h_hat[ch][ph].exp = AEC_ZEROVAL_EXP;
+            main_state->h_hat[ch][ph].hr = AEC_ZEROVAL_HR16;
         }
     }
-    //Shadow H_hat
+    //Shadow h_hat
     for(int ch=0; ch<y_channels; ch++) {
         for(int ph=0; ph<x_channels*shadow_phases; ph++) {
-            shadow_state->H_hat[ch][ph].exp = AEC_ZEROVAL_EXP;
-            shadow_state->H_hat[ch][ph].hr = AEC_ZEROVAL_HR;
+            shadow_state->h_hat[ch][ph].exp = AEC_ZEROVAL_EXP;
+            shadow_state->h_hat[ch][ph].hr = AEC_ZEROVAL_HR16;
         }
     }
     //X_fifo

@@ -7,6 +7,12 @@
 #include "aec.h"
 #include "aec_priv.h"
 
+/* The IC filter is the AEC filter share the same underlying implementation, so must be the same size. */
+_Static_assert(IC_FRAME_LENGTH == AEC_PROC_FRAME_LENGTH,
+        "The IC filter uses the AEC's bit-reversed tap layout, which is derived from AEC_PROC_FRAME_LENGTH");
+_Static_assert(IC_FRAME_ADVANCE == AEC_FRAME_ADVANCE,
+        "The IC filter uses the AEC's bit-reversed tap layout, which is derived from AEC_FRAME_ADVANCE");
+
 // Delay y input w.r.t. x input
 void ic_delay_y_input(ic_state_t *state,
         int32_t y_data[IC_FRAME_ADVANCE]){
@@ -88,7 +94,7 @@ void ic_frame_init(
         bfp_complex_s32_init(&state->T_bfp[ch], (complex_s32_t*)&state->x_bfp[ch].data[0], 0, IC_FD_FRAME_LENGTH, 0);
     }
 
-    // Set Y_hat memory to 0 since it will be used in bfp_complex_s32_macc operation in aec_l2_calc_Error_and_Y_hat()
+    // Set Y_hat memory to 0 since it is accumulated into by aec_priv_calc_Error_and_Y_hat()
     for(unsigned ch=0; ch<IC_Y_CHANNELS; ch++) {
         const exponent_t zero_exp = -1024;
         state->Y_hat_bfp[ch].exp = zero_exp;
@@ -179,10 +185,10 @@ void ic_calc_Error_and_Y_hat(
     bfp_complex_s32_t *Y_hat_ptr = &state->Y_hat_bfp[ch];
     bfp_complex_s32_t *Error_ptr = &state->Error_bfp[ch];
     bfp_complex_s32_t *X_fifo = state->X_fifo_1d_bfp;
-    bfp_complex_s32_t *H_hat = state->H_hat_bfp[ch];
+    bfp_s16_t *h_hat = state->h_hat_bfp[ch];
 
     int32_t bypass_enabled = state->config_params.bypass;
-    aec_priv_calc_Error_and_Y_hat(Error_ptr, Y_hat_ptr, Y_ptr, X_fifo, H_hat, IC_X_CHANNELS, IC_FILTER_PHASES, bypass_enabled);
+    aec_priv_calc_Error_and_Y_hat(Error_ptr, Y_hat_ptr, Y_ptr, X_fifo, h_hat, IC_X_CHANNELS, IC_FILTER_PHASES, bypass_enabled);
 }
 
 // Window error. Overlap add to create IC output
@@ -234,7 +240,7 @@ void ic_compute_T(
     aec_priv_compute_T(T_ptr, Error_ptr, inv_X_energy_ptr, mu);
 }
 
-// Adapt H_hat
+// Adapt h_hat
 void ic_filter_adapt(ic_state_t *state){
     if((state->ic_adaption_controller_state.adaption_controller_config.enable_adaption == 0) ||
        state->config_params.bypass ||
@@ -243,7 +249,7 @@ void ic_filter_adapt(ic_state_t *state){
     }
     bfp_complex_s32_t *T_ptr = &state->T_bfp[0];
     int y_ch = 0;
-    aec_priv_filter_adapt(state->H_hat_bfp[y_ch], state->X_fifo_1d_bfp, T_ptr, IC_X_CHANNELS, IC_FILTER_PHASES);
+    aec_priv_filter_adapt(state->h_hat_bfp[y_ch], state->X_fifo_1d_bfp, T_ptr, IC_X_CHANNELS, IC_FILTER_PHASES);
 }
 
 // Calculates fast ratio
@@ -317,8 +323,8 @@ void ic_mu_control_system(ic_state_t * state, float_s32_t vnr){
 void ic_reset_filter(ic_state_t *state, int32_t output[IC_FRAME_ADVANCE]){
 
     for(unsigned ch=0; ch<IC_Y_CHANNELS; ch++) {
-        bfp_complex_s32_t *H_hat = state->H_hat_bfp[ch];
-        aec_priv_reset_filter(H_hat, IC_X_CHANNELS, IC_FILTER_PHASES);
+        bfp_s16_t *h_hat = state->h_hat_bfp[ch];
+        aec_priv_reset_filter(h_hat, IC_X_CHANNELS, IC_FILTER_PHASES);
     }
     const exponent_t zero_exp = -1024;
     for(unsigned ch = 0; ch < IC_X_CHANNELS; ch ++){
@@ -360,7 +366,7 @@ void ic_apply_leakage(
     }
 
     for(int ph=0; ph<IC_X_CHANNELS*IC_FILTER_PHASES; ph++){
-        bfp_complex_s32_t *H_hat_ptr = &state->H_hat_bfp[y_ch][ph];
-        bfp_complex_s32_real_scale(H_hat_ptr, H_hat_ptr, state->leakage_alpha);
+        bfp_s16_t *h_hat_ptr = &state->h_hat_bfp[y_ch][ph];
+        aec_priv_bfp_s16_real_scale(h_hat_ptr, h_hat_ptr, state->leakage_alpha);
     }
 }

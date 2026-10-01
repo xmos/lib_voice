@@ -38,12 +38,14 @@ if (NOT BUILD_NATIVE)
             -report
             -Os
             -DTEST_WAV_XSCOPE=1
+            ${ADEC_TEST_DE_MODE_FLAGS}
             ${TEST_BIN_ADEC_CHANNEL_FLAGS})
 
     set(APP_XSCOPE_SRCS ${CONFIG_XSCOPE_REL_PATH})
 else()
     set(APP_COMPILER_FLAGS
             -DX86_BUILD=1
+            ${ADEC_TEST_DE_MODE_FLAGS}
             ${TEST_BIN_ADEC_CHANNEL_FLAGS})
 endif()
 XMOS_REGISTER_APP()

@@ -5,6 +5,12 @@ lib_voice change log
 -----
 
   * ADDED: Initial `vx4b` support
+  * ADDED: `aec_h_hat_tap_index()`, for mapping a tap's position in an AEC filter phase's impulse
+    response to its position in the stored phase
+  * CHANGED: The AEC adaptive filter is stored in the time domain rather than the frequency domain,
+    reducing AEC memory use by around 25%. Its taps are stored in bit-reversed index order so that
+    the per-phase transforms need no index bit-reversal pass; use `aec_h_hat_tap_index()` to read
+    the filter in time order
   * CHANGED: `app_pipeline` example is now single-tile
 
   * Changes to dependencies:

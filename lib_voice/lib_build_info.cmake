@@ -1,7 +1,7 @@
 set(LIB_NAME lib_voice)
 set(LIB_VERSION 1.1.0)
 set(LIB_DEPENDENT_MODULES
-    "lib_xcore_math(v3.0.0)"
+    "Allan-xmos/lib_xcore_math(feature/vx4_vect_s16_dot)"
     "ai_tools(v1.4.3.dev40)"
 )
 
@@ -10,6 +10,21 @@ set(LIB_COMPILER_FLAGS
             -Os
             -DHEADROOM_CHECK=0
 )
+
+# The hand written assembly under src/ is per architecture - see aec_h_hat_bitrev.S, which has a C
+# equivalent compiled in its place elsewhere. VX4 files carry a _vx4b suffix and the rest are XS3.
+# Setting LIB_ASM_SRCS explicitly stops XCommon CMake globbing every file into every build, where
+# the other architecture's files and all of them on native would be empty translation units at best.
+if(APP_BUILD_ARCH STREQUAL "xs3a")
+    file(GLOB_RECURSE LIB_ASM_SRCS RELATIVE ${CMAKE_CURRENT_LIST_DIR} CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_LIST_DIR}/src/*.S")
+    list(FILTER LIB_ASM_SRCS EXCLUDE REGEX "_vx4b\\.S$")
+elseif(APP_BUILD_ARCH STREQUAL "vx4b")
+    file(GLOB_RECURSE LIB_ASM_SRCS RELATIVE ${CMAKE_CURRENT_LIST_DIR} CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_LIST_DIR}/src/*_vx4b.S")
+else()
+    set(LIB_ASM_SRCS "")
+endif()
 
 if(APP_BUILD_ARCH STREQUAL "xs3a")
     list(APPEND LIB_COMPILER_FLAGS

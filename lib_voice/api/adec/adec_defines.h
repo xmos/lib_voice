@@ -59,7 +59,7 @@
 #endif
 /** @brief See @ref ADEC_DE_MODE_Y_CHANNELS @ingroup adec_defines */
 #ifndef ADEC_DE_MODE_MAIN_FILTER_PHASES
-#define ADEC_DE_MODE_MAIN_FILTER_PHASES         (30)
+#define ADEC_DE_MODE_MAIN_FILTER_PHASES         (29)
 #endif
 /** @brief See @ref ADEC_DE_MODE_Y_CHANNELS @ingroup adec_defines */
 #ifndef ADEC_DE_MODE_SHADOW_FILTER_PHASES
