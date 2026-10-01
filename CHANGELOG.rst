@@ -5,6 +5,18 @@ lib_voice change log
 -----
 
   * ADDED: Initial `vx4b` support
+  * ADDED: `aec_h_hat_tap_index()`, for mapping a tap's position in an AEC filter phase's impulse
+    response to its position in the stored phase
+  * CHANGED: The AEC adaptive filter is stored in the time domain rather than the frequency domain,
+    reducing AEC memory use by around 25%. Its taps are stored in bit-reversed index order so that
+    the per-phase transforms need no index bit-reversal pass; use `aec_h_hat_tap_index()` to read
+    the filter in time order
+  * CHANGED: `aec_memory_pool_t` now holds the shadow filter as well as the main filter, and
+    `aec_shadow_filt_memory_pool_t` is removed; the shadow filter is allocated straight after the
+    main filter, so a configuration with a shorter shadow filter can have a longer main filter
+  * CHANGED: `aec_filter_state_t::h_hat` and `aec_shared_filter_state_t::X_fifo` are arrays of row
+    pointers into storage sized by `AEC_LIB_MAX_PHASES`, which limits the total phase count
+    (`num_y_channels * num_x_channels * num_main_filter_phases`) rather than the length of each row
   * CHANGED: `app_pipeline` example is now single-tile
 
   * Changes to dependencies:

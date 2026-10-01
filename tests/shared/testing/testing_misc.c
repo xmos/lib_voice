@@ -77,3 +77,20 @@ unsigned vector_int32_maxdiff(int32_t * B, int B_exp, double * f, int start, int
     }
     return max_diff;
 }
+
+unsigned vector_int16_maxdiff(int16_t * B, int B_exp, double * f, int start, int count){
+    unsigned max_diff = 0;
+
+    for(int i=start;i<start + count;i++){
+        //double_to_int32() is still the right conversion: the reference value is by construction
+        //within the 16 bit range at this exponent, and the difference is reported in mantissa units
+        //of that exponent either way.
+        int32_t v = double_to_int32(f[i], B_exp);
+        int diff = v-B[i];
+        if (diff < 0 ) diff = -diff;
+        if( (unsigned)diff > max_diff){
+            max_diff = (unsigned)diff;
+        }
+    }
+    return max_diff;
+}

@@ -110,7 +110,7 @@ typedef struct {
     float_s32_t delta_adaption_force_on;
     /** Lower limit of delta computed using fractional regularisation.*/
     float_s32_t delta_min;
-    /** coefficient index used to track H_hat index when sending H_hat values over the host control interface.*/
+    /** coefficient index used to track h_hat index when sending h_hat values over the host control interface.*/
     uint32_t coeff_index;
     /** alpha used while calculating y_ema_energy, x_ema_energy and error_ema_energy.*/
     uq2_30 ema_alpha_q30;
@@ -176,8 +176,14 @@ typedef struct {
      * The phases are ordered from most recent to least recent in the X_fifo. For example, for an AEC configuration of 2
      * x-channels and 10 phases per x channel, 10 frames of X data spectrum is stored in the X_fifo. For a given x
      * channel, say x channel 0, X_fifo[0][0] points to the most recent frame's X spectrum and X_fifo[0][9] points to
-     * the last phase, i.e the least recent frame's X spectrum.*/
-    bfp_complex_s32_t X_fifo[AEC_MAX_X_CHANNELS][AEC_LIB_MAX_PHASES];
+     * the last phase, i.e the least recent frame's X spectrum.
+     *
+     * Each X_fifo[i] points to the row for x channel i in X_fifo_phases.*/
+    bfp_complex_s32_t *X_fifo[AEC_MAX_X_CHANNELS];
+
+    /** Storage for the BFP structs X_fifo points to, with the X_fifo rows laid end to end. There are
+     * num_x_channels * num_main_filter_phases of them, which is within AEC_LIB_MAX_PHASES.*/
+    bfp_complex_s32_t X_fifo_phases[AEC_LIB_MAX_PHASES];
 
     /** BFP array pointing to reference input signal spectrum. The X data values are stored as a length
      * AEC_FD_FRAME_LENGTH complex 32bit array per x channel.*/
@@ -279,21 +285,30 @@ typedef struct {
      * AEC_FD_FRAME_LENGTH, complex 32bit array per y channel.*/
     bfp_complex_s32_t Error[AEC_MAX_Y_CHANNELS];
 
-    /** BFP array pointing to the adaptive filter spectrum.
-     * The filter spectrum is stored as a num_y_channels x total_phases_across_all_x_channels array where each H_hat[i][j]
-     * entry points to the spectrum of a single phase.
+    /** BFP array pointing to the time domain adaptive filter.
+     * The filter is stored as a num_y_channels x total_phases_across_all_x_channels array where each h_hat[i][j]
+     * entry points to a single time domain filter phase. Each h_hat[i] points to the row for y channel i in
+     * h_hat_phases. The filter is stored in the time domain (rather than the
+     * frequency domain) to save memory; it is transformed to the frequency domain on the fly during the Error and
+     * Y_hat calculation. The taps are held at 16 bit depth in bit-reversed order.
      *
      * Number of phases in the filter refers to its tail length. A filter with more phases would be able to model a longer
      * echo thereby causing better echo cancellation.
      *
      * For example, for a 2 y-channels, 3 x-channels, 10 phases per x channel configuration,
-     * the filter spectrum phases are stored in a 2x30 array. For a given y channel, say y channel 0, H_hat[0][0] to
-     * H_hat[0][9] points to 10 phases of H_hat<SUB>y0x0</SUB>, H_hat[0][10] to H_hat[0][19] points to 10 phases of
-     * H_hat<SUB>y0x1</SUB> and H_hat[0][20] to H_hat[0][29] points to 10 phases of H_hat<SUB>y0x2</SUB>.
+     * the filter phases are stored in a 2x30 array. For a given y channel, say y channel 0, h_hat[0][0] to
+     * h_hat[0][9] points to 10 phases of h_hat<SUB>y0x0</SUB>, h_hat[0][10] to h_hat[0][19] points to 10 phases of
+     * h_hat<SUB>y0x1</SUB> and h_hat[0][20] to h_hat[0][29] points to 10 phases of h_hat<SUB>y0x2</SUB>.
      *
-     * Each filter phase data which is pointed to by H_hat[i][j].data is stored as AEC_FD_FRAME_LENGTH complex 32bit
-     * array.*/
-    bfp_complex_s32_t H_hat[AEC_MAX_Y_CHANNELS][AEC_LIB_MAX_PHASES];
+     * Each filter phase data which is pointed to by h_hat[i][j].data is stored as an AEC_FRAME_ADVANCE length real 16bit
+     * array.
+     */
+    bfp_s16_t *h_hat[AEC_MAX_Y_CHANNELS];
+
+    /** Storage for the BFP structs h_hat points to, with the h_hat rows laid end to end. A row only needs to be as
+     * long as the filter it holds, so a long single channel filter (such as the ADEC delay estimation filter) and a
+     * short multichannel one both fit, provided the total phase count is within AEC_LIB_MAX_PHASES.*/
+    bfp_s16_t h_hat_phases[AEC_LIB_MAX_PHASES];
 
     /** BFP array pointing to all phases of reference input spectrum across all x channels. Here, the reference input
      * spectrum is saved in a 1 dimensional array of phases, with x channel 0 phases followed by x channel 1 phases and
@@ -372,10 +387,8 @@ typedef struct {
     aec_filter_state_t DWORD_ALIGNED shadow_state;
     /** AEC state shared between the main and shadow filter */
     aec_shared_filter_state_t DWORD_ALIGNED shared_state;
-    /** Memory pool for the AEC main filter */
-    aec_memory_pool_t DWORD_ALIGNED main_mem_pool;
-    /** Memory pool for the AEC shadow filter */
-    aec_shadow_filt_memory_pool_t DWORD_ALIGNED shadow_mem_pool;
+    /** Memory pool for the AEC main and shadow filters */
+    aec_memory_pool_t DWORD_ALIGNED mem_pool;
 }aec_state_t;
 
 #endif

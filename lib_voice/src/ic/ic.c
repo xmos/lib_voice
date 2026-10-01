@@ -61,10 +61,10 @@ int32_t ic_init(ic_state_t *state){
     memset(state, 0, sizeof(ic_state_t));
     const exponent_t zero_exp = -1024;
     
-    // H_hat
+    // h_hat
     for(unsigned ch=0; ch<IC_Y_CHANNELS; ch++) {
         for(unsigned ph=0; ph<(IC_X_CHANNELS * IC_FILTER_PHASES); ph++) {
-            bfp_complex_s32_init(&state->H_hat_bfp[ch][ph], state->H_hat[ch][ph], zero_exp, IC_FD_FRAME_LENGTH, 0);
+            bfp_s16_init(&state->h_hat_bfp[ch][ph], state->h_hat[ch][ph], zero_exp, IC_FRAME_ADVANCE, 0);
         }
     }
     // X_fifo
@@ -263,7 +263,7 @@ void ic_adapt(ic_state_t *state){
         ic_calc_inv_X_energy(state, ch);
     }
    
-    // Adapt H_hat
+    // Adapt h_hat
     for(int ych=0; ych<IC_Y_CHANNELS; ych++) {
         // There's only enough memory to store IC_X_CHANNELS worth of T data and not IC_Y_CHANNELS*IC_X_CHANNELS so the y_channels for loop cannot be run in parallel
         for(int xch=0; xch<IC_X_CHANNELS; xch++) {
@@ -273,7 +273,7 @@ void ic_adapt(ic_state_t *state){
         ic_filter_adapt(state);
     }
 
-    // Apply H_hat leakage to slowly forget adaption
+    // Apply h_hat leakage to slowly forget adaption
     for(int ych=0; ych<IC_Y_CHANNELS; ych++) {
         ic_apply_leakage(state, ych);
     }
