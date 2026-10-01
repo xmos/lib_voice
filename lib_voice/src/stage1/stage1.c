@@ -142,7 +142,7 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
     adec_input_t adec_in;
     adec_estimate_delay(
             &adec_in.from_de,
-            state->aec_state.main_state.H_hat[0],
+            state->aec_state.main_state.h_hat[0],
             state->aec_state.main_state.num_phases
             );
 

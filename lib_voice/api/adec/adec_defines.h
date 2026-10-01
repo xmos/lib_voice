@@ -44,7 +44,7 @@
  * While estimating the delay, ADEC has the application re-initialise the AEC as a single channel
  * filter long enough to search the delay range, with no shadow filter. This configuration is fixed
  * rather than derived from the application's normal mode AEC, but must fit within the same memory
- * pool.
+ * pool. It has no shadow filter, so it can use the memory the normal mode shadow filter takes.
  *
  * Applications should build their delay estimation mode `aec_conf_t` from these defines.
  *
@@ -71,23 +71,18 @@ _Static_assert(ADEC_DE_MODE_Y_CHANNELS <= AEC_MAX_Y_CHANNELS,
         "The AEC is not built for enough y channels to run ADEC");
 _Static_assert(ADEC_DE_MODE_X_CHANNELS <= AEC_MAX_X_CHANNELS,
         "The AEC is not built for enough x channels to run ADEC");
-_Static_assert(ADEC_DE_MODE_X_CHANNELS * ADEC_DE_MODE_MAIN_FILTER_PHASES <= AEC_LIB_MAX_PHASES,
+_Static_assert(ADEC_DE_MODE_Y_CHANNELS * ADEC_DE_MODE_X_CHANNELS * ADEC_DE_MODE_MAIN_FILTER_PHASES
+                <= AEC_LIB_MAX_PHASES,
         "ADEC is using more filter phases than AEC_LIB_MAX_PHASES allows. Build the AEC for more "
         "phases, or reduce ADEC_DE_MODE_MAIN_FILTER_PHASES");
-_Static_assert(ADEC_DE_MODE_X_CHANNELS * ADEC_DE_MODE_SHADOW_FILTER_PHASES <= AEC_LIB_MAX_PHASES,
-        "ADEC is using more shadow filter phases than AEC_LIB_MAX_PHASES allows. Reduce "
-        "ADEC_DE_MODE_SHADOW_FILTER_PHASES");
 _Static_assert(ADEC_DE_MODE_SHADOW_FILTER_PHASES <= ADEC_DE_MODE_MAIN_FILTER_PHASES,
         "The shadow filter reads the X FIFO filled by the main filter, so ADEC cannot run it with "
         "more phases than ADEC_DE_MODE_MAIN_FILTER_PHASES");
-_Static_assert(AEC_MAIN_POOL_BYTES(ADEC_DE_MODE_Y_CHANNELS, ADEC_DE_MODE_X_CHANNELS,
-                                  ADEC_DE_MODE_MAIN_FILTER_PHASES) <= sizeof(aec_memory_pool_t),
+_Static_assert(AEC_POOL_BYTES(ADEC_DE_MODE_Y_CHANNELS, ADEC_DE_MODE_X_CHANNELS,
+                              ADEC_DE_MODE_MAIN_FILTER_PHASES, ADEC_DE_MODE_SHADOW_FILTER_PHASES)
+                <= sizeof(aec_memory_pool_t),
         "ADEC does not fit aec_memory_pool_t. Build the AEC for more phases, or reduce "
         "ADEC_DE_MODE_MAIN_FILTER_PHASES");
-_Static_assert(AEC_SHADOW_POOL_BYTES(ADEC_DE_MODE_Y_CHANNELS, ADEC_DE_MODE_X_CHANNELS,
-                                     ADEC_DE_MODE_SHADOW_FILTER_PHASES)
-                <= sizeof(aec_shadow_filt_memory_pool_t),
-        "ADEC does not fit aec_shadow_filt_memory_pool_t");
 _Static_assert(ADEC_DE_DELAY_SAMPS <= ADEC_DE_MODE_MAIN_FILTER_PHASES * AEC_FRAME_ADVANCE,
         "The delay estimation filter is shorter than the delay range ADEC searches, so the delay "
         "ADEC applies at the start of a cycle would push the echo past the end of the filter. "
