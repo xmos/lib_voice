@@ -371,6 +371,7 @@ pipeline {
                       dir("tests") {
                         script {
                           def speedupOpt = (env.FULL_TEST == "1") ? "" : "-DTEST_SPEEDUP_FACTOR=4"
+                          sh "xrun -l"
                           xcoreBuild(buildDir: "build_vx4b", archiveBins: false, cmakeOpts: "${speedupOpt} -DAPP_HW_TARGET=XK-EVK-XU416")
                         }
                         stash name: 'vx4b_build_xcore', includes: '**/bin/**/*.xe'
