@@ -41,7 +41,7 @@
  * and don't forget to update the print_prof() to reflect the updated start and end index.
  * For e.g., to profile IC at a finer granularity, replace,
  *      prof(0, "start_ic_process_frame");
- *      ic_process_frame(&ic_state, input[0], input[1], output, &input_vnr_pred);
+ *      ic_process_frame(&ic_state, output, input[0], input[1], &input_vnr_pred, 0);
  *      prof(1, "end_ic_process_frame");
  *      print_prof(0, 2, framenum);
  *

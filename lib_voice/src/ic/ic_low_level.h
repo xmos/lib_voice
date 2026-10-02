@@ -21,7 +21,7 @@ void ic_mu_control_system(
 // Calculates fast energy
 void ic_calc_fast_ratio(ic_adaption_controller_state_t * ad_state);
 
-// Adapt H_hat
+// Adapt h_hat
 void ic_filter_adapt(ic_state_t *state);
 
 // Some nice doxygen comments
@@ -94,48 +94,10 @@ void ic_compute_T(
         unsigned y_ch,
         unsigned x_ch);
 
-// Calculate Error and Y_hat for a channel over a range of bins
-void ic_l2_calc_Error_and_Y_hat(
-        bfp_complex_s32_t *Error,
-        bfp_complex_s32_t *Y_hat,
-        const bfp_complex_s32_t *Y,
-        const bfp_complex_s32_t *X_fifo,
-        const bfp_complex_s32_t *H_hat,
-        unsigned start_offset,
-        unsigned length,
-        int32_t bypass_enabled);
-
-// Adapt one phase or 2 consecutive phases of H_hat filter
-void ic_l2_adapt_plus_fft_gc(
-        bfp_complex_s32_t *H_hat_ph,
-        const bfp_complex_s32_t *X_fifo_ph,
-        const bfp_complex_s32_t *T_ph
-        );
-
-// Unify bfp_complex_s32_t chunks into a single exponent and headroom
-void ic_l2_bfp_complex_s32_unify_exponent(
-        bfp_complex_s32_t *chunks,
-        int *final_exp,
-        int *final_hr,
-        const int *mapping,
-        int array_len,
-        int desired_index,
-        int min_headroom);
-
-// Unify bfp_s32_t chunks into a single exponent and headroom
-void ic_l2_bfp_s32_unify_exponent(
-        bfp_s32_t *chunks,
-        int *final_exp,
-        int *final_hr,
-        const int *mapping,
-        int array_len,
-        int desired_index,
-        int min_headroom);
-
 // Clear coefficients to zero
 void ic_reset_filter(ic_state_t *state, int32_t output[IC_FRAME_ADVANCE]);
 
-// Leak H_hat to forget adaption
+// Leak h_hat to forget adaption
 void ic_apply_leakage(
         ic_state_t *state,
         unsigned y_ch);

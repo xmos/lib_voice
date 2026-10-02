@@ -60,7 +60,7 @@ void aec_assert_config_supported(
  * for the lifetime of the AEC instance.
  * Any change to the number of channels or filter phases requires calling
  * `aec_init()` again to rebind internal state to the memory pools.
- * See @ref aec_memory_pool_t and @ref aec_shadow_filt_memory_pool_t for details
+ * See @ref aec_memory_pool_t for details
  * on memory pool sizing and usage.
  *
  * \par Preconditions
@@ -68,14 +68,12 @@ void aec_assert_config_supported(
  * the following must hold:
  * - num_y_channels <= @ref AEC_MAX_Y_CHANNELS
  * - num_x_channels <= @ref AEC_MAX_X_CHANNELS
- * - num_x_channels * num_main_filter_phases <= @ref AEC_LIB_MAX_PHASES
- * - num_x_channels * num_shadow_filter_phases <= @ref AEC_LIB_MAX_PHASES
+ * - num_y_channels * num_x_channels * num_main_filter_phases <= @ref AEC_LIB_MAX_PHASES
  * - num_shadow_filter_phases <= num_main_filter_phases, because the shadow filter reads the
  *   reference (X) FIFO that the main filter fills
- * - AEC_MAIN_POOL_BYTES(num_y_channels, num_x_channels, num_main_filter_phases)
- *   <= sizeof(@ref aec_memory_pool_t)
- * - AEC_SHADOW_POOL_BYTES(num_y_channels, num_x_channels, num_shadow_filter_phases)
- *   <= sizeof(@ref aec_shadow_filt_memory_pool_t)
+ * - AEC_POOL_BYTES(num_y_channels, num_x_channels, num_main_filter_phases,
+ *   num_shadow_filter_phases) <= sizeof(@ref aec_memory_pool_t). The shadow filter is allocated
+ *   straight after the main filter, so a shorter shadow filter leaves room for a longer main one
  *
  * @param[inout] aec_state                AEC state object
  * @param[in]    num_y_channels           Number of microphone input channels
@@ -118,11 +116,24 @@ void aec_init(
  * samples. It uses the input reference data frame to model the room echo characteristics
  * and adapt the internal main and shadow filters.
  *
- * @param[inout] aec_state     AEC state structure
- * @param[inout] output_main   Output from processing the mic input through the main filter
- * @param[inout] output_shadow Output from processing the mic input through the shadow filter
- * @param[in] y_data           Input microphone data frame
- * @param[in] x_data           Input reference data frame
+ * It also detects activity on the reference input. A reference is active when any sample in the frame is
+ * above @ref REF_ACTIVE_THRESHOLD_DB. The reported reference active flag is held: it stays set until the
+ * reference has been inactive for @ref HOLD_AEC_LIMIT_SECONDS.
+ *
+ * In @ref ALT_ARCH_MODE the held flag also controls the AEC bypass. While it is clear the AEC is bypassed
+ * and `output_main` is a sample aligned copy of `y_data`. This lets microphone channels the AEC is not
+ * configured for bypass the AEC entirely and be passed to the IC alongside the AEC output: in the
+ * alternating architecture the AEC processes 1 microphone channel while the IC uses 2. Pass the held flag
+ * to `ic_process_frame()` so that the IC is bypassed whenever the AEC is enabled. `output_main` must not
+ * alias `y_data` in this mode.
+ *
+ * @param[inout] aec_state       AEC state structure
+ * @param[inout] output_main     Output from processing the mic input through the main filter
+ * @param[inout] output_shadow   Output from processing the mic input through the shadow filter. May be NULL.
+ * @param[out]   ref_active_flag Held reference active flag, 1 if the reference is active and 0 otherwise.
+ *                               May be NULL.
+ * @param[in] y_data             Input microphone data frame
+ * @param[in] x_data             Input reference data frame
  *
  * @ingroup aec_func
  */
@@ -130,6 +141,7 @@ void aec_process_frame(
         aec_state_t *aec_state,
         int32_t (*output_main)[AEC_FRAME_ADVANCE],
         int32_t (*output_shadow)[AEC_FRAME_ADVANCE],
+        int32_t *ref_active_flag,
         int32_t (*y_data)[AEC_FRAME_ADVANCE],
         int32_t (*x_data)[AEC_FRAME_ADVANCE]);
 
@@ -203,5 +215,25 @@ float_s32_t aec_calc_max_input_energy(
 float_s32_t aec_calc_corr_factor(
         aec_filter_state_t *state,
         unsigned ch);
+
+/** @brief Find where a time domain filter tap lives within a stored filter phase
+ *
+ * The taps of an aec_filter_state_t::h_hat phase are not stored in time order - they are permuted into the
+ * bit-reversed index order the FFT works in, which lets the AEC skip the index bit-reversal pass on both of the
+ * per-phase transforms it does every frame. This function maps a tap's position in the impulse response to its
+ * position in the stored phase, so that code reading or writing the filter can account for the permutation:
+ *
+ * \code
+ *      // read tap n of the impulse response of phase ph
+ *      int16_t tap = state->h_hat[ch][ph].data[aec_h_hat_tap_index(n)];
+ * \endcode
+ *
+ * @param[in] n Position of the tap in the filter phase's impulse response, less than @ref AEC_FRAME_ADVANCE
+ * @returns Index of that tap within the stored filter phase
+ *
+ * @ingroup aec_func
+ *
+ */
+unsigned aec_h_hat_tap_index(unsigned n);
 
 #endif

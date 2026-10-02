@@ -5,7 +5,28 @@ lib_voice change log
 -----
 
   * ADDED: Initial `vx4b` support
+  * ADDED: `aec_h_hat_tap_index()`, for mapping a tap's position in an AEC filter phase's impulse
+    response to its position in the stored phase
+  * CHANGED: The AEC adaptive filter is stored in the time domain rather than the frequency domain,
+    reducing AEC memory use by around 25%. Its taps are stored in bit-reversed index order so that
+    the per-phase transforms need no index bit-reversal pass; use `aec_h_hat_tap_index()` to read
+    the filter in time order
+  * CHANGED: `aec_memory_pool_t` now holds the shadow filter as well as the main filter, and
+    `aec_shadow_filt_memory_pool_t` is removed; the shadow filter is allocated straight after the
+    main filter, so a configuration with a shorter shadow filter can have a longer main filter
+  * CHANGED: `aec_filter_state_t::h_hat` and `aec_shared_filter_state_t::X_fifo` are arrays of row
+    pointers into storage sized by `AEC_LIB_MAX_PHASES`, which limits the total phase count
+    (`num_y_channels * num_x_channels * num_main_filter_phases`) rather than the length of each row
   * CHANGED: `app_pipeline` example is now single-tile
+  * CHANGED: Alternating architecture control moved out of Stage1 into the AEC and IC.
+    `ALT_ARCH_MODE` is defined in the new `alt_arch.h`, `HOLD_AEC_LIMIT_SECONDS` in `aec_defines.h`.
+    Stage1 passes mic channels the AEC is not configured for through from the delayed mic input
+  * CHANGED: `aec_process_frame()` takes a `ref_active_flag` output, reporting the reference
+    active flag held for `HOLD_AEC_LIMIT_SECONDS`. It is reported in the standard architecture too,
+    so the AGC now sees far-end activity there. In `ALT_ARCH_MODE` the AEC bypasses itself while
+    the flag is clear
+  * CHANGED: `ic_process_frame()` arguments reordered to match `aec_process_frame()`, and a
+    `ref_active_flag` input added. In `ALT_ARCH_MODE` the IC bypasses itself while it is set
 
   * Changes to dependencies:
 

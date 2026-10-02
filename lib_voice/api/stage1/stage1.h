@@ -15,16 +15,8 @@
  * @defgroup stage1_types     Stage1 types
  */
 
-/** Enable stage1 alternative arch mode
- *
- * @ingroup stage1_types
- */
-#ifndef ALT_ARCH_MODE
-#define ALT_ARCH_MODE (0)
-#endif
-
-
 /** Number of microphone (Y) channels the pipeline carries through stage1.
+ *  Channels beyond the number the AEC is configured for are passed through delayed but otherwise unprocessed.
  *  In @ref ALT_ARCH_MODE this must be 2.
  *
  * @ingroup stage1_types
@@ -45,17 +37,9 @@ _Static_assert(STAGE1_MAX_Y_CHANNELS <= MAX_DELAY_BUF_CHANNELS,
         "channel Stage1 carries");
 #if ALT_ARCH_MODE
 _Static_assert(STAGE1_MAX_Y_CHANNELS == 2,
-        "alt arch duplicates the single channel AEC output into a second mic channel for the IC, so "
-        "it needs the pipeline to carry 2 mic channels");
+        "In alt arch the IC needs both mic channels when the AEC is bypassed, so the pipeline "
+        "must carry 2 mic channels");
 #endif
-
-
-/** Limit in seconds for which AEC is kept enabled after detecting reference as inactive.
- *  Used only in alt arch configuration.
- *
- * @ingroup stage1_types
- */
-#define HOLD_AEC_LIMIT_SECONDS (3)
 
 
 /**
@@ -80,7 +64,7 @@ typedef struct {
  * @brief Persistent state for stage1 processing
  *
  * It aggregates AEC, ADEC and delay buffer state, AEC runtime configurations for
- * delay and non-delay estimation mode and control flags used in stage1 processing.
+ * delay and non-delay estimation mode, and the current mode.
  *
  * @ingroup stage1_types
  */
@@ -102,19 +86,6 @@ typedef struct {
 
     /** Flag indicating if AEC is running in delay estimation mode */
     int32_t delay_estimator_enabled;
-
-    /** Threshold used for detecting activity on the reference audio channel */
-    float_s32_t ref_active_threshold;
-
-    /** Number of consecutive frames reference has been inactive for.
-     * Used only in alt-arch mode
-     */
-    int32_t hold_aec_count;
-
-    /** Number of frames the reference must be inactive before AEC is disabled.
-     * Used only in alt-arch mode
-     */
-    int32_t hold_aec_limit;
 } stage1_t;
 
 /**
@@ -122,8 +93,6 @@ typedef struct {
  *
  * Sets up persistent state for Stage1, initialises ADEC, AEC (in non delay estimation mode)
  * and the delay buffer.
- * Also resets internal counters used to control AEC enable/disable behaviour in
- * alt-arch mode.
  *
  * All pointers must be non-NULL. The @ref stage1_t memory must persist for the lifetime
  * of the stage 1 processing.
@@ -147,14 +116,16 @@ void stage1_init(stage1_t *state, aec_conf_t *de_conf, aec_conf_t *non_de_conf, 
  * runs ADEC and applies ADEC result (e.g. switch AEC config,
  * change applied delay).
  *
- * Supports standard or alternating-architecture mode controlled by
- * the compile-time flag @ref ALT_ARCH_MODE.
+ * Microphone channels the AEC is not configured for are copied from the delayed microphone
+ * input to the output. While ADEC runs a delay estimation cycle, all output channels are the
+ * delayed microphone input.
  *
  * @param[in,out] state            Persistent Stage1 state.
  * @param[out]    output_frame     Output frame buffer [@ref STAGE1_MAX_Y_CHANNELS][AEC_FRAME_ADVANCE] in Q31 format.
+ *                                 Must not alias input_y.
  * @param[out]    max_ref_energy   Maximum reference-channel energy (float_s32_t) for this frame.
  * @param[out]    aec_corr_factor  AEC correction factor (float_s32_t) computed for this frame.
- * @param[out]    ref_active_flag  Set non-zero if reference is detected active this frame.
+ * @param[out]    ref_active_flag  Held reference active flag reported by `aec_process_frame()`.
  * @param[in]     input_y          Microphone (Y) input frame [@ref STAGE1_MAX_Y_CHANNELS][AEC_FRAME_ADVANCE] in Q31 format.
  * @param[in]     input_x          Reference (X) input frame [X channels][AEC_FRAME_ADVANCE] in Q31 format.
  *

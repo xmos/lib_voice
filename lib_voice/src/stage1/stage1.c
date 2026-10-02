@@ -45,9 +45,6 @@ void stage1_init(stage1_t *state, aec_conf_t *de_conf, aec_conf_t *non_de_conf, 
     assert_aec_conf_supported(non_de_conf);
 
     state->delay_estimator_enabled = 0;
-    state->ref_active_threshold =  f64_to_float_s32(pow(10, REF_ACTIVE_THRESHOLD_DB/20.0)); //-60dB
-    state->hold_aec_count = 0; //No. of consecutive frames reference has been absent for
-    state->hold_aec_limit = (16000*HOLD_AEC_LIMIT_SECONDS)/AEC_FRAME_ADVANCE; //bypass AEC only when reference has been absent for at least 3 seconds (200 frames)
 
     delay_buffer_init(&state->delay_state, 0/*Initialise with 0 delay_samples*/);
     memcpy(&state->aec_de_mode_conf, de_conf, sizeof(aec_conf_t));
@@ -56,59 +53,6 @@ void stage1_init(stage1_t *state, aec_conf_t *de_conf, aec_conf_t *non_de_conf, 
     adec_init(&state->adec_state, adec_config);
     aec_switch_configuration(state, &state->aec_non_de_mode_conf);
 }
-
-#if ALT_ARCH_MODE
-// Based of activity on the reference channels, this function controls enabling and disabling of AEC and IC stages.
-static void alt_arch_controller(stage1_t *state, int32_t *ref_active_flag) {
-    if(*ref_active_flag){ //Ref present
-        // If there's reference, enable AEC and disable IC right away
-        state->hold_aec_count = 0;
-        state->aec_state.main_state.shared_state->config_params.aec_core_conf.bypass = 0;
-    }
-    else { //Ref absent
-        if(!state->aec_state.main_state.shared_state->config_params.aec_core_conf.bypass) { // If reference is not there and AEC is still enabled
-            if(state->hold_aec_count > state->hold_aec_limit) { // If reference has been absent for 3 continuous seconds, disable AEC
-                state->aec_state.main_state.shared_state->config_params.aec_core_conf.bypass = 1;
-            }
-            else { // If ref hasn't been absent for 3 continuous seconds, keep AEC enabled and propagate ref as being present to the next stage.
-                state->hold_aec_count++;
-                // propagate the ref_active_flag still as 1 to the next stage
-                *ref_active_flag = 1;
-            }
-        }
-    }
-}
-
-// In alt arch mode AEC outputs 1 channel and IC works on 2 input channel. This function makes sure that proper number of channels of output data is sent
-// out of this stage. It assumes alt arch design, i.e when AEC is enabled, IC is disabled and vice versa.
-static void alt_arch_rewrite_output(int32_t (*output)[AEC_FRAME_ADVANCE], const int32_t (*mic_input)[AEC_FRAME_ADVANCE], int32_t y_channels, int32_t aec_bypass) {
-    // This code implies knowledge of the other pipeline stages which this stage is ideally not supposed to have, but alt-arch design
-    // assumes that stage 1 has this knowledge and gets to make decisions about enabling/disabling downstream stages.
-
-    /** If we've processed fewer channels than the max present in the pipeline*/
-    if(y_channels < STAGE1_MAX_Y_CHANNELS) {
-        // If AEC is not bypassed, copy AEC output to the other channels that haven't been processed by AEC. This is the alt arch situation
-        // where 1 channel AEC is enabled and IC is bypassed. We're assuming here that since AEC is enabled, IC would be disabled and so the
-        // 2 channels of duplicate output would not be processed through IC.
-        if(!aec_bypass)
-        {
-            for(int ch=y_channels; ch<STAGE1_MAX_Y_CHANNELS; ch++)
-            {
-                vpu_memcpy(&output[ch][0], &output[y_channels - 1][0], AEC_FRAME_ADVANCE*sizeof(int32_t));
-            }
-        }
-        else {
-            // If AEC is bypassed, copy the mic input to all the output channels. This is the alt arch situation where aec is bypassed and
-            // IC is enabled. Since AEC has only bypassed one channel and IC would need both channels with their original phase relationship
-            // preserved, we overwrite the AEC output with mic input. Providing 1 channel of AEC bypassed output and routing the other mic channel
-            // unmodified to IC doesn't work for IC.
-            for(int ch=0; ch<STAGE1_MAX_Y_CHANNELS; ch++) {
-                vpu_memcpy(&output[ch][0], &mic_input[ch][0], AEC_FRAME_ADVANCE*sizeof(int32_t));// AEC cannot process the frame in-place because of this
-            }
-        }
-    }
-}
-#endif
 
 /** Process a frame of data through AEC and ADEC*/
 void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADVANCE],
@@ -122,15 +66,8 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
             delay_state_ptr
             );
 
-    /** Alt-arch controller logic*/
-#if ALT_ARCH_MODE
-    /** Detect if there's activity on the reference channels*/
-    *ref_active_flag = aec_detect_input_activity(input_x, state->ref_active_threshold, state->aec_state.main_state.shared_state->num_x_channels);
-    alt_arch_controller(state, ref_active_flag);
-#endif
-
     /** AEC*/
-    aec_process_frame(&state->aec_state, output_frame, NULL, input_y, input_x);
+    aec_process_frame(&state->aec_state, output_frame, NULL, ref_active_flag, input_y, input_x);
 
     /** Update metadata*/
     *max_ref_energy = aec_calc_max_input_energy(input_x, state->aec_state.main_state.shared_state->num_x_channels);
@@ -142,7 +79,7 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
     adec_input_t adec_in;
     adec_estimate_delay(
             &adec_in.from_de,
-            state->aec_state.main_state.H_hat[0],
+            state->aec_state.main_state.h_hat[0],
             state->aec_state.main_state.num_phases
             );
 
@@ -175,15 +112,11 @@ void stage1_process_frame(stage1_t *state, int32_t (*output_frame)[AEC_FRAME_ADV
         }
     }
 
-#if ALT_ARCH_MODE
-    alt_arch_rewrite_output(output_frame, input_y, state->aec_state.main_state.shared_state->num_y_channels, state->aec_state.main_state.shared_state->config_params.aec_core_conf.bypass);
-#endif
-
-    // Overwrite output with mic input if delay estimation enabled
-    if (state->delay_estimator_enabled) {
-        for(int ch=0; ch<STAGE1_MAX_Y_CHANNELS; ch++) {
-            vpu_memcpy(&output_frame[ch][0], &input_y[ch][0], AEC_FRAME_ADVANCE*sizeof(int32_t)); // AEC cannot process the frame in-place because of this
-        }
+    // Overwrite output with mic input if delay estimation enabled, otherwise pass through the mic channels the AEC
+    // hasn't processed. The AEC cannot process the frame in-place because of this.
+    int first_mic_ch = state->delay_estimator_enabled ? 0 : state->aec_state.main_state.shared_state->num_y_channels;
+    for(int ch=first_mic_ch; ch<STAGE1_MAX_Y_CHANNELS; ch++) {
+        vpu_memcpy(&output_frame[ch][0], &input_y[ch][0], AEC_FRAME_ADVANCE*sizeof(int32_t));
     }
 
     /** Switch AEC config if needed*/

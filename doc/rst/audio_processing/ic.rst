@@ -75,8 +75,16 @@ Usage
 Before starting processing, the IC must be initialised by calling
 :c:func:`ic_init()`, which sets up internal state of the IC.
 Once initialised, interference cancellation is performed by calling :c:func:`ic_process_frame()`
-for each input frame (see :ref:`pipeline_example`). :c:func:`ic_process_frame()` also outputs
-the VNR estimate for the current frame.
+for each input frame (see :ref:`pipeline_example`). Following the AEC's convention, the output buffer
+comes before the two microphone inputs. :c:func:`ic_process_frame()` also takes the reference
+active flag reported by :c:func:`aec_process_frame()`, and outputs the VNR estimate for the current
+frame.
+
+In the alternating architecture (:c:macro:`ALT_ARCH_MODE` set to 1), the IC bypasses itself while the
+reference active flag is set, which is when the AEC is enabled. While bypassed, the delayed primary microphone
+signal is passed to the output unprocessed and the filter does not adapt, but the VNR estimate is still
+calculated so that it can be used by the AGC. In the standard architecture the flag is ignored and the IC
+is always active. See :ref:`aec_alt_arch` for a description of both architectures.
 
 
 Parameters

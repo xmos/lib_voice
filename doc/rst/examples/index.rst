@@ -141,7 +141,7 @@ because the IC needs both mic channels when the AEC is disabled.
 
 .. literalinclude:: ../../../examples/app_pipeline/src/pipeline.c
     :language: c
-    :start-at: // Bypass IC if the reference is high in the alt arch mode
+    :start-at: /** IC and VNR*/
     :end-at: agc_process_frame(&state->agc_state, output_data, ns_output, &agc_md);
 
 Upon execution, the example will print "frame done" when the AEC has processed a frame.

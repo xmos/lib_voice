@@ -122,17 +122,9 @@ void pipeline_stage_2(chanend_t c_frame_in, chanend_t c_frame_out) {
         continue;
 #endif
 
-#if ALT_ARCH_MODE
-        if(md.ref_active_flag) {
-            ic_state.config_params.bypass = 1;
-        }
-        else {
-            ic_state.config_params.bypass = 0;
-        }
-#endif
         /** IC and VNR */
-        // Calculating the ASR channel
-        ic_process_frame(&ic_state, frame[0], frame[1], frame[0], &input_vnr_pred);
+        // Calculating the ASR channel. In alt arch mode the IC bypasses itself while the reference is active
+        ic_process_frame(&ic_state, frame[0], frame[0], frame[1], &input_vnr_pred, md.ref_active_flag);
 #if PRINT_VNR_PREDICTION
         printf("VNR INPUT PRED: %ld %d\n", (long)input_vnr_pred.mant, input_vnr_pred.exp);
 #endif

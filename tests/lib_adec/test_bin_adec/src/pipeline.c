@@ -21,7 +21,6 @@ void pipeline_init(pipeline_state_t *state, aec_conf_t *de_conf, aec_conf_t *non
     memset(state, 0, sizeof(pipeline_state_t));
     state->delay_estimator_enabled = 0;
     state->adec_requested_delay_samples = 0;
-    state->ref_active_threshold =  f64_to_float_s32(pow(10, -60/20.0));
 
     // Initialise default delay values
     delay_buffer_init(&state->delay_state, 0/*Initialise with 0 delay_samples*/);
@@ -95,13 +94,13 @@ void pipeline_process_frame(pipeline_state_t *state,
     /** AEC*/
     int32_t aec_output_shadow[AP_MAX_Y_CHANNELS][AP_FRAME_ADVANCE];
     // Writing main filter output to output_data directly
-    aec_process_frame(&state->aec_state, output_data, aec_output_shadow, input_y_data, input_x_data);
+    aec_process_frame(&state->aec_state, output_data, aec_output_shadow, NULL, input_y_data, input_x_data);
 
     /** Delay estimator*/
     adec_input_t adec_in;
     adec_estimate_delay(
             &adec_in.from_de,
-            state->aec_state.main_state.H_hat[0],
+            state->aec_state.main_state.h_hat[0],
             state->aec_state.main_state.num_phases
             );
 

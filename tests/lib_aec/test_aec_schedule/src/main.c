@@ -19,7 +19,7 @@ void test_aec(int32_t (*input)[AEC_FRAME_ADVANCE],
                 AEC_MAX_Y_CHANNELS, AEC_MAX_X_CHANNELS,
                 AEC_MAIN_FILTER_PHASES, AEC_SHADOW_FILTER_PHASES, &tdist);
     }
-    aec_process_frame(&aec_state, output, NULL, &input[0], &input[AEC_MAX_Y_CHANNELS]);
+    aec_process_frame(&aec_state, output, NULL, NULL, &input[0], &input[AEC_MAX_Y_CHANNELS]);
     framenum += 1;
 }
 

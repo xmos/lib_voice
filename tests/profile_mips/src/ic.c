@@ -19,7 +19,7 @@ void test_ic(int32_t (*input)[IC_FRAME_ADVANCE], int32_t (*output)[IC_FRAME_ADVA
     }
 
     prof(0, "start_ic_process_frame");
-    ic_process_frame(&ic_state, input[0], input[1], output[0], &input_vnr_pred);
+    ic_process_frame(&ic_state, output[0], input[0], input[1], &input_vnr_pred, 0);
     prof(1, "end_ic_process_frame");
     print_prof(0, 2, framenum);
     framenum += 1;

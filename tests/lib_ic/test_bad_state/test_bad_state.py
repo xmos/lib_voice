@@ -62,11 +62,23 @@ def run_test(input_data, conf_data, test_name, fs, target):
     average = np.mean(leq[(t>3)*(t<5)])
     return average
 
-def form_conf_data(config, H_hat, num_words_H):
-    conf_data = np.empty(0, dtype=np.int32)
-    conf_data = np.append(conf_data, np.array([num_words_H, config], dtype=np.int32))
-    conf_data = np.append(conf_data, np.array(pvc.float_to_int32_qxx(pvc.flatten_complex_array(H_hat), 29), dtype=np.int32))
-    return conf_data
+def form_conf_data(config, h_hat, num_taps):
+    """Pack an ideal time domain filter into the conf.bin the DUT reads.
+
+    ``h_hat`` is the ideal filter as ``num_taps`` real taps in time order. The IC stores its filter
+    at 16 bit depth, so the taps are quantised to that depth at an exponent chosen to just fit
+    them, and that exponent is sent alongside so the DUT can install them without guessing a scale.
+    One tap per int32 word keeps conf.bin a flat word array.
+    """
+    h_hat = np.asarray(h_hat).flatten()
+    assert h_hat.size == num_taps
+
+    # largest tap should land near full scale int16
+    exp = int(np.ceil(np.log2(np.max(np.abs(h_hat))))) - 15
+    taps = np.clip(np.round(h_hat / (2.0 ** exp)), -32768, 32767)
+
+    conf_data = np.array([num_taps, config, exp], dtype=np.int32)
+    return np.append(conf_data, taps.astype(np.int32))
 
 @pytest.mark.parametrize("room", ["lab"])
 @pytest.mark.parametrize("speech_level", [0])
@@ -78,12 +90,10 @@ def test_bad_state(room, speech_level, noise_name, target):
 
     # load config
     fs = ap_conf["general"]["fs"]
-    proc_frame_length = ap_conf["general"]["proc_frame_length"]
     frame_advance = ap_conf["general"]["frame_advance"]
 
     delay = ap_conf["ic"]["y_channel_delay"]
     phases = ap_conf["ic"]["phases"]
-    f_bin_count = (proc_frame_length // 2) + 1
 
     # make room pipeline spec
     noise_spec, speech_spec, playback_spec, length_samps = rap.make_rap_spec(fs, room,
@@ -97,8 +107,11 @@ def test_bad_state(room, speech_level, noise_name, target):
     noise_ir = np.load(imp_path / imp_list[noise_spec[2]])
     speech_ir = np.load(imp_path / imp_list[speech_spec[2]])
 
-    ideal_speech_cancellation_H = ith.calc_ideal_fd_filter(speech_ir, delay, phases, f_bin_count, proc_frame_length, frame_advance)[0, 0, :, :]
-    ideal_noise_cancellation_H = ith.calc_ideal_fd_filter(noise_ir, delay, phases, f_bin_count, proc_frame_length, frame_advance)[0, 0, :, :]
+    # The IC filter is stored in the time domain, so seed it with the ideal time domain filter directly:
+    # h_hat[ph][tap], real taps in time order
+    num_taps = phases * frame_advance
+    ideal_speech_cancellation_h = ith.calc_ideal_td_filter(speech_ir, delay, num_taps)
+    ideal_noise_cancellation_h = ith.calc_ideal_td_filter(noise_ir, delay, num_taps)
 
     # run room pipeline
     mic_sig, out_array, in_array = rap.room_sim(utterance=speech_spec,
@@ -115,7 +128,6 @@ def test_bad_state(room, speech_level, noise_name, target):
         f"Input signal too hot for fixed-point: peak={peak:.6f} > {target_peak}. "
         "Reduce `gain`/levels or adjust the RAP spec to avoid clipping."
     )
-    num_words_H = f_bin_count * 2 * phases # H_hat[ph][bin_count] for both real and complex
 
     # crop to have full frames
     inx = mic_sig.shape[1] // frame_advance * frame_advance
@@ -129,10 +141,10 @@ def test_bad_state(room, speech_level, noise_name, target):
     input_data = pvc.float_to_int32(mic_sig)
     input_data = pvc.interleave_channel_frames(input_data, frame_advance)
 
-    conf_data_cancel_noise = form_conf_data(2, ideal_noise_cancellation_H, num_words_H)
+    conf_data_cancel_noise = form_conf_data(2, ideal_noise_cancellation_h, num_taps)
     average_fixed_good = run_test(input_data, conf_data_cancel_noise, f"good_{test_id}", fs, target)
 
-    conf_data_cancel_speech = form_conf_data(0, ideal_speech_cancellation_H, num_words_H)
+    conf_data_cancel_speech = form_conf_data(0, ideal_speech_cancellation_h, num_taps)
     average_adapt_bad = run_test(input_data, conf_data_cancel_speech, f"bad_{test_id}", fs, target)
 
     print(f"average_adapt_bad (dB): {average_adapt_bad}")

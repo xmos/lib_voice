@@ -117,6 +117,127 @@ as part of the :ref:`stage1_module`.
 For configuration details (compile-time limits, memory pools, schedules),
 see the :ref:`aec-configuration` and :ref:`aec-schedules` sections below.
 
+.. _aec_alt_arch:
+
+Reference Activity and Pipeline Architectures
+---------------------------------------------
+
+Every frame, :c:func:`aec_process_frame()` checks for activity on the reference input. The reference
+is active when the maximum sample in the frame on any reference channel is above
+:c:macro:`REF_ACTIVE_THRESHOLD_DB`. The AEC reports a held reference active flag through the
+``ref_active_flag`` argument of :c:func:`aec_process_frame()`: the flag stays set until the reference
+has been inactive for :c:macro:`HOLD_AEC_LIMIT_SECONDS`. Downstream stages use this flag, for example
+the AGC for loss control and, in the alternating architecture, the IC.
+
+Two pipeline architectures are supported:
+
+- **Standard Architecture**: Processes multiple microphone channels through both AEC and IC sequentially
+- **Alternating Architecture**: Selectively enables AEC or IC based on reference signal presence,
+  reducing memory requirements and enabling longer AEC filter tails
+
+Standard Architecture
+^^^^^^^^^^^^^^^^^^^^^
+
+In the Standard Architecture pipeline form, all the modules are enabled and called sequentially. This is shown in
+:numref:`std_arch_pipeline`.
+
+.. _std_arch_pipeline:
+
+.. figure:: ../images/standard_arch_pipeline.drawio.svg
+    :align: center
+
+    The Standard Architecture Pipeline.
+
+The AEC is configured for 2 mic input channels, 2 reference input channels, 10 phase main filter and a 5 phase shadow
+filter. The IC is configured for 2 mic input channels, and 10 phase main filter. The AEC generates the echo cancelled
+version of the mic input that is then sent for processing through the IC. When ADEC goes into delay estimation mode,
+the IC remains active.
+
+Alternating Architecture
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this pipeline form, the AEC and the IC frame processing are selectively enabled and disabled
+based on the presence of reference input signal. This is shown in :numref:`alt_arch_pipeline`.
+
+Acoustic Echo Cancellation is performed only if activity is detected on the reference input
+channels and disabled otherwise.
+
+Interference Cancellation is performed only when AEC is disabled so in the absence of reference
+channel activity and disabled otherwise.
+
+This means that only 1 microphone signal requires processing by the AEC, reducing the number of
+filters required. This saves memory, which can then be used to increase the AEC filter tail length.
+This can improve AEC performance in more reverberant environments.
+
+.. _alt_arch_pipeline:
+
+.. figure:: ../images/alt_arch_stage1_all.drawio.svg
+    :align: center
+
+    The Alternating Architecture.
+
+When reference audio is detected, the AEC is enabled and the IC is disabled. The AEC processes one
+microphone input to remove any echo from the reference signal. This is shown in :numref:`alt_arch_aec`. Note
+the VNR output from the IC is still generated so that it can be used by the AGC.
+
+.. _alt_arch_aec:
+
+.. figure:: ../images/alt_arch_stage1_aec.drawio.svg
+    :align: center
+
+    The Alternating Architecture when the reference signal is present.
+
+When no reference audio is detected, the AEC is disabled and the IC is enabled. The IC processes
+both microphone inputs to remove any unwanted noise sources in the environment.
+This is shown in :numref:`alt_arch_ic`.
+
+.. _alt_arch_ic:
+
+.. figure:: ../images/alt_arch_stage1_ic.drawio.svg
+    :align: center
+
+    The Alternating Architecture when no reference signal is present.
+
+The AEC is configured for 1 mic input channel, 2 reference input channels, 15 phase main filter and a 5 phase shadow
+filter giving an extended tail length for highly reverberant environments.
+
+The switching is done inside the modules rather than by the application:
+
+- The AEC bypasses itself while its held reference active flag is clear, so it stays enabled for
+  :c:macro:`HOLD_AEC_LIMIT_SECONDS` after the reference becomes inactive. While bypassed, the microphone input
+  is copied directly to the AEC output, so the output is sample aligned with the input.
+- The IC bypasses itself while the reference active flag passed to :c:func:`ic_process_frame()` is set (see
+  :ref:`ic_module`). Passing the flag reported by :c:func:`aec_process_frame()` ensures the AEC and IC are never
+  both enabled.
+
+The AEC is configured, and its memory sized, for 1 microphone channel only. The second microphone channel
+bypasses the AEC entirely and is passed straight to the IC, alongside the AEC output. Because the bypassed AEC
+output is sample aligned with its input, the IC receives both microphone channels with their original phase
+relationship preserved whenever it is enabled. While the AEC is enabled, the IC is bypassed, so its output and
+VNR estimate depend only on the AEC output. For example, without the :ref:`stage1_module`:
+
+.. code-block:: c
+
+    // AEC_MAX_Y_CHANNELS is 1, the pipeline carries 2 microphone channels
+    aec_init(&aec_state, 1, 2, 15, 5, &tdist);
+
+    int32_t aec_out[1][AEC_FRAME_ADVANCE];
+    int32_t ref_active_flag;
+    // Only mic[0] is processed by the AEC
+    aec_process_frame(&aec_state, aec_out, NULL, &ref_active_flag, mic, ref);
+    // mic[1] bypasses the AEC
+    ic_process_frame(&ic_state, ic_out, aec_out[0], mic[1], &vnr_pred, ref_active_flag);
+
+The :ref:`stage1_module` does the same, passing microphone channels the AEC is not configured for straight
+through to its output.
+
+When ADEC goes into delay estimation mode, the AEC gets reconfigured as described in the
+:ref:`adec_module` documentation. This restarts the reference activity hold.
+
+Alternating architecture is disabled by default (see :c:macro:`ALT_ARCH_MODE`). To enable it, define
+``ALT_ARCH_MODE`` to 1 for the whole application, for example in the application's CMakeLists.txt. The same value is
+used by the AEC and the IC.
+
 
 .. _aec-configuration:
 
@@ -150,15 +271,17 @@ avoiding dynamic memory allocation at runtime. There are two layers of configura
 Memory pools
 ^^^^^^^^^^^^
 
-AEC binds internal BFP structures to preallocated memory pools:
+AEC binds internal BFP structures to a preallocated memory pool,
+:c:type:`aec_memory_pool_t`, which holds the main filter, the shadow filter and the state they
+share.
 
-- :c:type:`aec_memory_pool_t` (main filter + shared state)
-- :c:type:`aec_shadow_filt_memory_pool_t` (shadow filter)
-
-The pools must be allocated with capacity matching the compile-time macros above.
-At initialisation, :c:func:`aec_init()` maps the pools to internal BFP structures
-sized to the runtime configuration.
-The pools must remain valid for the lifetime of the AEC instance.
+The pool is sized by the compile-time macros above.
+At initialisation, :c:func:`aec_init()` maps the pool to internal BFP structures
+sized to the runtime configuration, allocating the main filter first and the shadow filter
+straight after it. A runtime configuration with a shorter shadow filter can therefore use the
+spare memory for a longer main filter; for example, the ADEC delay estimation configuration has
+no shadow filter.
+The pool must remain valid for the lifetime of the AEC instance.
 
 .. _aec-preconditions:
 
@@ -171,18 +294,13 @@ and ``num_shadow_filter_phases`` must satisfy:
 
 - ``num_y_channels`` ≤ :c:macro:`AEC_MAX_Y_CHANNELS`
 - ``num_x_channels`` ≤ :c:macro:`AEC_MAX_X_CHANNELS`
-- ``num_x_channels`` × ``num_main_filter_phases`` ≤ :c:macro:`AEC_LIB_MAX_PHASES`
-- ``num_x_channels`` × ``num_shadow_filter_phases`` ≤ :c:macro:`AEC_LIB_MAX_PHASES`
+- ``num_y_channels`` × ``num_x_channels`` × ``num_main_filter_phases`` ≤ :c:macro:`AEC_LIB_MAX_PHASES`
 - ``num_shadow_filter_phases`` ≤ ``num_main_filter_phases``, because the shadow filter reads the
   reference (X) FIFO that the main filter fills
-- The configuration fits in the memory pools:
-
-  - Main filter: :c:macro:`AEC_MAIN_POOL_BYTES`
-    ``(num_y_channels, num_x_channels, num_main_filter_phases)`` must not exceed the size of
-    :c:type:`aec_memory_pool_t`
-  - Shadow filter: :c:macro:`AEC_SHADOW_POOL_BYTES`
-    ``(num_y_channels, num_x_channels, num_shadow_filter_phases)`` must not exceed the size of
-    :c:type:`aec_shadow_filt_memory_pool_t`
+- The configuration fits in the memory pool:
+  :c:macro:`AEC_POOL_BYTES`
+  ``(num_y_channels, num_x_channels, num_main_filter_phases, num_shadow_filter_phases)``
+  must not exceed ``sizeof(aec_memory_pool_t)``
 
 :c:func:`aec_init()` asserts these conditions.
 They can also be checked without initialising the AEC by calling
@@ -193,9 +311,8 @@ starts a delay estimation cycle.
 The compile-time maximums must also satisfy
 :c:macro:`AEC_SHADOW_FILTER_PHASES` ≤ :c:macro:`AEC_MAIN_FILTER_PHASES`. This is checked at compile time.
 
-For a configuration fixed at compile time, :c:macro:`AEC_MAIN_POOL_BYTES` and
-:c:macro:`AEC_SHADOW_POOL_BYTES` are constant expressions, so the pool checks can be done with
-``_Static_assert``. ``adec_defines.h`` does this for the ADEC delay estimation configuration.
+For a configuration fixed at compile time, :c:macro:`AEC_POOL_BYTES` is a constant expression,
+so the pool check can be done with ``_Static_assert``. ``adec_defines.h`` does this for the ADEC delay estimation configuration.
 
 .. _aec-schedules:
 
@@ -309,6 +426,13 @@ The key AEC parameters are highlighted below:
   reference signal in a frame is below this threshold, the AEC will consider it inactive and will
   pause adaption. If the reference signal is expected to be far below full scale for a reasonable
   SPL output, this threshold can be reduced to allow for adaption during low-level playback.
+  The same threshold sets the reference active flag reported by :c:func:`aec_process_frame()`
+  (see :ref:`aec_alt_arch`).
+* :c:macro:`HOLD_AEC_LIMIT_SECONDS` - This macro sets how long, in seconds, the reported reference
+  active flag stays set after the reference becomes inactive. In the alternating architecture this
+  is also how long the AEC stays enabled. This avoids toggling of AEC and IC when the reference
+  signal is fluctuating around the reference active threshold.
+* :c:macro:`ALT_ARCH_MODE` - Enables the alternating architecture (see :ref:`aec_alt_arch`).
   
 Other AEC parameters are described in the ``aec_state.h`` header file, and are described in detail in
 :c:struct:`aec_config_params_t`.

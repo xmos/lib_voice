@@ -16,13 +16,11 @@ Stage1 operates at a fixed 16 kHz sample rate.
 
 Stage1 manages the transition between normal AEC operation and delay estimation mode,
 applies delay corrections to maintain optimal AEC performance, and generates metadata
-(reference energy, correlation factors, and activity flags) for downstream processing stages.
+(reference energy, correlation factors, and the reference active flag) for downstream processing stages.
 
-Two pipeline architectures are supported:
-
-- **Standard Architecture**: Processes multiple microphone channels through both AEC and IC sequentially
-- **Alternating Architecture**: Selectively enables AEC or IC based on reference signal presence,
-  reducing memory requirements and enabling longer AEC filter tails
+Stage1 supports both the standard and the alternating pipeline architectures described in
+:ref:`aec_alt_arch`. The decision to bypass the AEC in the alternating architecture is made inside
+the AEC, so Stage1 does not depend on the architecture.
 
 Signal Representation
 ---------------------
@@ -32,91 +30,35 @@ Stage1 processes audio on a frame-by-frame basis. Each frame consists of 15 ms o
 
 Inputs:
 
-- Microphone (Y) channels: Up to 2 channels of microphone input
+- Microphone (Y) channels: :c:macro:`STAGE1_MAX_Y_CHANNELS` channels of microphone input
 - Reference (X) channels: Up to 2 channels of reference (loudspeaker) input
 
 Outputs:
 
-- Echo-cancelled audio: Same number of channels as microphone input
-- Metadata: Maximum reference energy, AEC correlation factors, reference activity flag
+- Echo-cancelled audio: :c:macro:`STAGE1_MAX_Y_CHANNELS` channels
+- Metadata: Maximum reference energy, AEC correlation factors, reference active flag
 
-Standard Architecture
----------------------
+Delay Alignment and Estimation
+------------------------------
 
-In the Standard Architecture pipeline form, all the modules are enabled and called sequentially. This is shown in
-:numref:`std_arch_pipeline`.
+Every frame, Stage1 first delays either the microphone or the reference input through the
+delay buffer, by the delay currently requested by ADEC. A positive delay delays the microphone, and a
+negative delay delays the reference.
 
-.. _std_arch_pipeline:
+When ADEC requests a delay estimation cycle, the AEC is reconfigured as a 1 mic input channel, 1
+reference input channel, 30 main filter phases and no shadow filter, as described in the
+:ref:`adec_module` documentation. While the delay is being estimated, all output channels are the
+delayed microphone input. Once the new delay has been measured and the delay correction is applied,
+the AEC is configured back to its original configuration and starts adapting and cancelling again.
 
-.. figure:: ../images/standard_arch_pipeline.drawio.svg
-    :align: center
+Channels Not Processed by the AEC
+---------------------------------
 
-    The Standard Architecture Pipeline.
-
-The AEC is configured for 2 mic input channels, 2 reference input channels, 10 phase main filter and a 5 phase shadow
-filter. The IC is configured for 2 mic input channels, and 10 phase main filter.
-
-When ADEC goes in delay estimation mode, the AEC gets reconfigured as a 1 mic input channel, 1
-reference input channel, 30 main filter phases and no shadow filter, as described in the :ref:`adec_module` documentation.
-During this, the IC remains active.
-
-Once the new delay has been measured and the delay correction is
-applied, the AEC gets configured back to its original configuration and starts adapting and cancellation.
-The AEC stage generates the echo cancelled version of the mic input that is then sent for processing through the IC.
-
-Alternating Architecture
-------------------------
-
-In this pipeline form, the AEC and the IC frame processing are selectively enabled and disabled
-based on the presence of reference input signal. This is shown in :numref:`alt_arch_pipeline`.
-
-Acoustic Echo Cancellation is performed only if activity is detected on the reference input
-channels and disabled otherwise.
-
-Interference Cancellation is performed only when AEC is disabled so in the absence of reference
-channel activity and disabled otherwise.
-
-This means that only 1 microphone signal requires processing by the AEC, reducing the number of
-filters required. This saves memory, which can then be used to increase the AEC filter tail length.
-This can improve AEC performance in more reverberant environments.
-
-.. _alt_arch_pipeline:
-
-.. figure:: ../images/alt_arch_stage1_all.drawio.svg
-    :align: center
-
-    The Alternating Architecture Stage 1.
-
-When reference audio is detected, the AEC is enabled and the IC is disabled. The AEC processes one
-microphone input to remove any echo from the reference signal. This is shown in :numref:`alt_arch_aec`. Note
-the VNR output from the IC is still generated so that it can be used by the AGC.
-
-.. _alt_arch_aec:
-
-.. figure:: ../images/alt_arch_stage1_aec.drawio.svg
-    :align: center
-
-    The Alternating Architecture Stage 1 when the reference signal is present.
-
-When no reference audio is detected, the AEC is disabled and the IC is enabled. The IC processes
-both microphone inputs to remove any unwanted noise sources in the environment.
-This is shown in :numref:`alt_arch_ic`.
-
-.. _alt_arch_ic:
-
-.. figure:: ../images/alt_arch_stage1_ic.drawio.svg
-    :align: center
-
-    The Alternating Architecture Stage 1 when no reference signal is present.
-
-The AEC is configured for 1 mic input channel, 2 reference input channels, 15 phase main filter and a 5 phase shadow
-filter giving an extended tail length for highly reverberant environments. 
-
-When ADEC goes in delay estimation mode, the AEC gets reconfigured as a 1 mic input channel, 1
-reference input channel, 30 main filter phases and no shadow filter, as described in the :ref:`adec_module` documentation.
-In the absence of activity on the reference channels, when the AEC is disabled, the microphone input is copied directly to the output of the AEC.
-
-Alternating architecture is disabled by default (see :c:macro:`ALT_ARCH_MODE`). To enable it, define ``ALT_ARCH_MODE`` to 1 in the application's CMakeLists.txt.
+Stage1 carries :c:macro:`STAGE1_MAX_Y_CHANNELS` microphone channels, which may be more than
+the AEC is configured for. Microphone channels the AEC does not process are copied from the delayed
+microphone input to the output. In the alternating architecture, for example, the AEC processes only
+1 microphone channel, but Stage1 carries 2, because the IC needs both microphone channels while
+the AEC is bypassed.
 
 Usage
 -----
@@ -124,22 +66,8 @@ Usage
 Before starting processing, Stage1 must be initialised by calling :c:func:`stage1_init()`.
 This sets up internal state for the provided runtime AEC configurations and ADEC settings.
 
-Once initialised, call :c:func:`stage1_process_frame()` for each input frame.
+Once initialised, call :c:func:`stage1_process_frame()` for each input frame. The output buffer must
+not alias the microphone input, because the microphone input is needed to overwrite the output in some
+cases.
 
 Refer to :ref:`pipeline_example` to see Stage1 integrated into an audio pipeline.
-
-Parameters
-----------
-
-The key Stage 1 parameters are highlighted below:
-
-* :c:macro:`REF_ACTIVE_THRESHOLD_DB` - This macro is used in alt arch mode, and sets the threshold
-  for determining whether the reference signal is active, in decibels relative to full scale. 
-  When the maximum value of the reference signal in a frame is below this threshold for 
-  ``HOLD_AEC_LIMIT_SECONDS``, the AEC will be bypassed and the IC will be enabled
-  If the reference signal is above this level, the AEC will be enabled and the IC bypassed.
-  Note this parameter is shared with the AEC module.
-* :c:macro:`HOLD_AEC_LIMIT_SECONDS` - This macro is used in alt arch mode, and sets the limit in 
-  seconds for which AEC is kept enabled after detecting reference as inactive. This is to avoid
-  toggling of AEC and IC when the reference signal is fluctuating around the reference active
-  threshold. 

@@ -19,7 +19,7 @@ void test_aec(int32_t (*input)[AEC_FRAME_ADVANCE], int32_t (*output)[AEC_FRAME_A
     }
 
     prof(0, "start_aec_process_frame");
-    aec_process_frame(&aec_state, output, NULL, &input[0], &input[AEC_MAX_Y_CHANNELS]);
+    aec_process_frame(&aec_state, output, NULL, NULL, &input[0], &input[AEC_MAX_Y_CHANNELS]);
     prof(1, "end_aec_process_frame");
     print_prof(0, 2, framenum);
     framenum += 1;

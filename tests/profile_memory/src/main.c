@@ -29,7 +29,7 @@ void test_aec() {
             AEC_MAX_Y_CHANNELS, AEC_MAX_X_CHANNELS,
             AEC_MAIN_FILTER_PHASES, AEC_SHADOW_FILTER_PHASES, &tdist);
 
-    aec_process_frame(&aec_state, output, NULL, frame_y, frame_x);
+    aec_process_frame(&aec_state, output, NULL, NULL, frame_y, frame_x);
 }
 
 void test_ic() {
@@ -39,7 +39,7 @@ void test_ic() {
     int32_t output[IC_FRAME_ADVANCE];
     float_s32_t input_vnr_pred;
     ic_init(&ic_state);
-    ic_process_frame(&ic_state, frame_y, frame_x, output, &input_vnr_pred);
+    ic_process_frame(&ic_state, output, frame_y, frame_x, &input_vnr_pred, 0);
 }
 
 void test_vnr() {

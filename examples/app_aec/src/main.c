@@ -46,7 +46,7 @@ int main() {
         producer(frame_y, frame_x);
         // Reuse mic data memory for the main filter output
         // Reuse ref data memory for the shadow filter output
-        aec_process_frame(&aec_state, frame_y, frame_x, frame_y, frame_x);
+        aec_process_frame(&aec_state, frame_y, frame_x, NULL, frame_y, frame_x);
         consumer(frame_y);
     }
     return 0;
