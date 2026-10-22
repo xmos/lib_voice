@@ -18,7 +18,8 @@ import soundfile as sf
 
 from aec_test_utils import (get_test_instances, read_config, read_wav,
                             check_aec_output, get_criteria,
-                            get_h_hat_impulse_response)
+                            get_h_hat_impulse_response,
+                            get_impulse_response_metrics, check_impulse_response)
 from plot_test import plot_test, plot_impulseresponse_test
 from test_wav import test_wav
 
@@ -176,11 +177,21 @@ def test_impulseresponse(test, target):
 
     h_hat = get_h_hat(h_hat_dump, test['id'].replace(',', '_'))
     h_hat_ir = get_h_hat_impulse_response(h_hat, 0, 0)
-    plot_impulseresponse_test(os.path.join(plot_dir_pass, f"{test['id']}.png"),
+    metrics = get_impulse_response_metrics(h_hat_ir, test['echo'],
+                                           read_wav(test['in_filename']),
+                                           read_wav(test['ref_filename']),
+                                           read_wav(test['out_filename'])[:, 0],
+                                           cfg['settle_time'])
+    passed, report = check_impulse_response(metrics, get_criteria(test['id']),
+                                            check_output=True)
+    print(report)
+
+    plot_impulseresponse_test(os.path.join(plot_dir_pass if passed else plot_dir_fail,
+                                           f"{test['id']}.png"),
                               test['id'], test['echo'], h_hat_ir, test['headroom'],
-                              test['out_filename'], cfg['settle_time'])
-    write_log(True, test['id'], stdout)
-    # TODO: no numeric pass/fail criteria defined yet for impulse response tests, only plotted.
+                              test['out_filename'], cfg['settle_time'], metrics['out_ir'])
+    write_log(passed, test['id'], stdout + [report])
+    assert passed
 
 
 @pytest.mark.parametrize('test', get_test_instances('smallimpulseresponse', in_dir, out_dir))
@@ -194,11 +205,23 @@ def test_smallimpulseresponse(test, target):
 
     h_hat = get_h_hat(h_hat_dump, test['id'].replace(',', '_'))
     h_hat_ir = get_h_hat_impulse_response(h_hat, 0, 0)
-    plot_impulseresponse_test(os.path.join(plot_dir_pass, f"{test['id']}.png"),
+    metrics = get_impulse_response_metrics(h_hat_ir, test['echo'],
+                                           read_wav(test['in_filename']),
+                                           read_wav(test['ref_filename']),
+                                           read_wav(test['out_filename'])[:, 0],
+                                           cfg['settle_time'])
+    # Adapts exactly as test_impulseresponse; only the probe impulse is smaller (-60 dBFS), so
+    # its output-measured IR is limited by the -90 dB near-end noise. Judge the h_hat dump only.
+    passed, report = check_impulse_response(metrics, get_criteria(test['id']),
+                                            check_output=False)
+    print(report)
+
+    plot_impulseresponse_test(os.path.join(plot_dir_pass if passed else plot_dir_fail,
+                                           f"{test['id']}.png"),
                               test['id'], test['echo'], h_hat_ir, test['headroom'],
-                              test['out_filename'], cfg['settle_time'])
-    write_log(True, test['id'], stdout)
-    # TODO: no numeric pass/fail criteria defined yet for impulse response tests, only plotted.
+                              test['out_filename'], cfg['settle_time'], metrics['out_ir'])
+    write_log(passed, test['id'], stdout + [report])
+    assert passed
 
 
 @pytest.mark.parametrize('test', get_test_instances('bandlimited', in_dir, out_dir))
