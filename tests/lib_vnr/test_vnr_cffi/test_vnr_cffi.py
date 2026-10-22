@@ -63,7 +63,7 @@ class vnr_feature_comparison:
         # Inference
         dut_ie_output = vnr_test_lib.test_vnr_inference(dut_features_bfp_ptr)
 
-        return ref_features, dut_features, ref_ie_output[0], dut_ie_output
+        return ref_features, dut_features, ref_ie_output, dut_ie_output
 
 @pytest.mark.parametrize("input_file", streams)
 def test_frame_features(input_file):
