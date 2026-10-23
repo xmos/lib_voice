@@ -116,11 +116,25 @@ void aec_init(
  * samples. It uses the input reference data frame to model the room echo characteristics
  * and adapt the internal main and shadow filters.
  *
- * @param[inout] aec_state     AEC state structure
- * @param[inout] output_main   Output from processing the mic input through the main filter
- * @param[inout] output_shadow Output from processing the mic input through the shadow filter
- * @param[in] y_data           Input microphone data frame
- * @param[in] x_data           Input reference data frame
+ * It also detects activity on the reference input. A reference is active when any sample in the frame is
+ * above @ref REF_ACTIVE_THRESHOLD_DB. The reported reference active flag is held: it stays set until the
+ * reference has been inactive for @ref HOLD_AEC_LIMIT_SECONDS.
+ *
+ * In @ref ALT_ARCH_MODE the held flag also controls the AEC bypass. While it is clear the AEC is bypassed
+ * and `output_main` is a sample aligned copy of `y_data`. This lets microphone channels the AEC is not
+ * configured for bypass the AEC entirely and be passed to the IC alongside the AEC output: in the
+ * alternating architecture the AEC processes 1 microphone channel while the IC uses 2. Pass the held flag
+ * to `ic_process_frame()` so that the IC is bypassed whenever the AEC is enabled.
+ *
+ * The frame can be processed in-place: `output_main` may alias `y_data`, and `output_shadow` may alias `x_data`.
+ *
+ * @param[inout] aec_state       AEC state structure
+ * @param[inout] output_main     Output from processing the mic input through the main filter
+ * @param[inout] output_shadow   Output from processing the mic input through the shadow filter. May be NULL.
+ * @param[in] y_data             Input microphone data frame
+ * @param[in] x_data             Input reference data frame
+ * @param[out] ref_active_flag   Held reference active flag, 1 if the reference is active and 0 otherwise.
+ *                               May be NULL.
  *
  * @ingroup aec_func
  */
@@ -129,7 +143,8 @@ void aec_process_frame(
         int32_t (*output_main)[AEC_FRAME_ADVANCE],
         int32_t (*output_shadow)[AEC_FRAME_ADVANCE],
         int32_t (*y_data)[AEC_FRAME_ADVANCE],
-        int32_t (*x_data)[AEC_FRAME_ADVANCE]);
+        int32_t (*x_data)[AEC_FRAME_ADVANCE],
+        int32_t *ref_active_flag);
 
 /** @brief Detect activity on input channels.
  *

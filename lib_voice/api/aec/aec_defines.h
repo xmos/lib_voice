@@ -8,8 +8,16 @@
 #error PLEASE CALL AEC FROM C TO AVOID STRUCT INCOMPATIBILITY ISSUES
 #endif
 
-#ifdef __aec_conf_h_exists__
+#include "alt_arch.h"
+
+#if defined(__aec_conf_h_exists__)
+    // Set by XCommon CMake (LIB_OPTIONAL_HEADERS) or lib_voice's generate_schedule()
     #include "aec_conf.h"
+#elif defined(__has_include)
+    // plain CMake checks the include path
+    #if __has_include("aec_conf.h")
+        #include "aec_conf.h"
+    #endif
 #endif
 
 /**
@@ -170,5 +178,22 @@ _Static_assert(AEC_SHADOW_FILTER_PHASES <= AEC_MAIN_FILTER_PHASES,
  * @ingroup aec_defines
  */
 #define AEC_LIB_MAX_THREADS (3)
+
+/** @brief Time in seconds the reference active flag is held after the reference goes inactive.
+ *
+ * `aec_process_frame()` reports the reference as active until it has been inactive for this long. In
+ * @ref ALT_ARCH_MODE the AEC stays enabled for the same time, which avoids rapid toggling between the AEC and the IC.
+ *
+ * @ingroup aec_defines
+ */
+#ifndef HOLD_AEC_LIMIT_SECONDS
+#define HOLD_AEC_LIMIT_SECONDS (3)
+#endif
+
+/** Number of frames in @ref HOLD_AEC_LIMIT_SECONDS. NOT USER MODIFIABLE.
+ *
+ * @ingroup aec_defines
+ */
+#define AEC_HOLD_LIMIT_FRAMES ((16000 * HOLD_AEC_LIMIT_SECONDS) / AEC_FRAME_ADVANCE)
 
 #endif

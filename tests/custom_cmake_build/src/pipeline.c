@@ -65,7 +65,7 @@ void pipeline_process_frame(pipeline_state_t *state,
     int32_t ic_output[AP_FRAME_ADVANCE];
     float_s32_t input_vnr_pred;
 
-    ic_process_frame(&state->ic_state, stage_1_out[0], stage_1_out[1], ic_output, &input_vnr_pred);
+    ic_process_frame(&state->ic_state, ic_output, stage_1_out[0], stage_1_out[1], &input_vnr_pred, md.ref_active_flag);
     md.vnr_pred_flag = input_vnr_pred;
 
     /** NS*/

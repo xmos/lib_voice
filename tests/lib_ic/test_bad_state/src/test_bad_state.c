@@ -39,5 +39,5 @@ void test_init(int32_t conf, int32_t h_hat_exp, int32_t * h_data)
 void test(int32_t * output, int32_t * y_frame, int32_t * x_frame)
 {
     float_s32_t input_vnr_pred;
-    ic_process_frame(&ic_state, y_frame, x_frame, output, &input_vnr_pred);
+    ic_process_frame(&ic_state, output, y_frame, x_frame, &input_vnr_pred, 0);
 }

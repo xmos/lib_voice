@@ -28,3 +28,4 @@ documentation <https://www.xmos.com/documentation/XM-015059-UG/html/doc/rst/src/
   agc
   adec
   stage1
+  alt_arch

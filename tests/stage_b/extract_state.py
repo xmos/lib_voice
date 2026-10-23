@@ -11,6 +11,7 @@ from pathlib import Path
 sandbox_dir = Path(__file__).parents[3]
 xcore_math_types_api_dir = sandbox_dir / "lib_xcore_math/lib_xcore_math/api"
 lib_ic_api_dir = sandbox_dir / "lib_voice/lib_voice/api/ic/"
+lib_voice_api_dir = sandbox_dir / "lib_voice/lib_voice/api/"
 lib_ic_src_dir = sandbox_dir / "lib_voice/lib_voice/src/ic"
 lib_vnr_api_dir = sandbox_dir / "lib_voice/lib_voice/api/vnr/"
 lib_vnr_model_dir = sandbox_dir / "lib_voice/lib_voice/src/vnr/model"
@@ -61,7 +62,7 @@ def extract_pre_defs():
     extract_xcore_math()
 
     #Grab just ic_state related lines from the C pre-processed
-    subprocess.check_output(f"gcc -E ic_vnr_test.c -o ic_vnr_test.i -I {lib_ic_api_dir} -I {lib_ic_src_dir} -I {xcore_math_types_api_dir} -I {lib_vnr_api_dir} -I {lib_vnr_model_dir} -I {lib_vnr_src_dir}".split())
+    subprocess.check_output(f"gcc -E ic_vnr_test.c -o ic_vnr_test.i -I {lib_voice_api_dir} -I {lib_ic_api_dir} -I {lib_ic_src_dir} -I {xcore_math_types_api_dir} -I {lib_vnr_api_dir} -I {lib_vnr_model_dir} -I {lib_vnr_src_dir}".split())
 
     with open("ic_vnr_test.i") as pp:
         end_of_file = False

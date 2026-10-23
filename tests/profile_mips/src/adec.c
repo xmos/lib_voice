@@ -22,7 +22,7 @@ void test_adec(int32_t (*input)[AEC_FRAME_ADVANCE], int32_t (*output)[AEC_FRAME_
         adec_config.force_de_cycle_trigger = 0;
         adec_init(&adec_state, &adec_config);
     }
-    aec_process_frame(&aec_state, output, NULL, &input[0], &input[AEC_MAX_Y_CHANNELS]);
+    aec_process_frame(&aec_state, output, NULL, &input[0], &input[AEC_MAX_Y_CHANNELS], NULL);
 
     prof(0, "start_adec_estimate_delay");
     adec_estimate_delay(

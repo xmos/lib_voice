@@ -7,3 +7,8 @@ set(SANDBOX_DIR ${CMAKE_CURRENT_LIST_DIR}/../../../..)
 add_subdirectory(${SANDBOX_DIR}/lib_xcore_math/lib_xcore_math ${CMAKE_BINARY_DIR}/lib_xcore_math)
 add_subdirectory(${SANDBOX_DIR}/ai_tools/ai_tools ${CMAKE_BINARY_DIR}/ai_tools)
 add_subdirectory(${SANDBOX_DIR}/lib_voice/lib_voice ${CMAKE_BINARY_DIR}/lib_voice)
+
+add_library(lib_voice_module_lib_ic_cffi STATIC)
+target_link_libraries(lib_voice_module_lib_ic_cffi PRIVATE lib_voice_module_lib_ic)
+set_target_properties(lib_voice_module_lib_ic_cffi PROPERTIES
+	ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib_voice)
