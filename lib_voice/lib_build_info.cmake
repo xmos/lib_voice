@@ -1,7 +1,7 @@
 set(LIB_NAME lib_voice)
 set(LIB_VERSION 1.1.0)
 set(LIB_DEPENDENT_MODULES
-    "lib_xcore_math(develop)"
+    "uvvpavel/lib_xs3_math(vx4b_opts)"
     "ai_tools(v1.4.3.dev40)"
 )
 
