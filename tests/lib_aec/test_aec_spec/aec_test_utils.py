@@ -9,7 +9,7 @@ import numpy as np
 import scipy.io.wavfile
 import scipy.signal.windows
 from audio_generation import (get_filenames, get_magnitude,
-                              get_suppressed_magnitude, db)
+                              get_suppressed_magnitude, db, get_h)
 
 
 def files_exist(*args):
@@ -145,6 +145,89 @@ def get_h_hat_impulse_response(h_hat, y_channel, x_channel):
         h_hat_ir[start:end] = h_hat[y_channel][x_channel][phase]
 
     return h_hat_ir
+
+
+def power_db(x):
+    return 10 * np.log10(max(x, 1e-30))
+
+
+def get_misalignment(h_hat_ir, h):
+    """Normalised misalignment of an echo path estimate, in dB:
+    10log10(||h_hat_ir - h||^2 / ||h||^2), over all taps of the longer of the two.
+
+    For a white reference this is minus the ERLE the estimate can give with no near-end, so
+    -misalignment is the ERLE ceiling set by the filter alone."""
+    err = np.zeros(max(len(h_hat_ir), len(h)))
+    err[:len(h_hat_ir)] += h_hat_ir
+    err[:len(h)] -= h
+    return power_db(np.sum(err ** 2) / np.sum(h ** 2))
+
+
+def get_output_impulse_response(audio_ref, audio_out, impulse_index, length, h,
+                                max_lag=240):
+    """Measures h_hat through the real datapath, from the AEC output after an impulse injected
+    into the reference only, with adaptation frozen: out = mic - h_hat*ref, so -out/impulse is
+    h_hat plus the near-end. The AEC output lags its input by a few samples; that lag (at most
+    max_lag) is found by correlating with the true echo path h."""
+    amplitude = audio_ref[impulse_index]
+    segment = -audio_out[impulse_index:impulse_index + max_lag + length] / amplitude
+    lag = int(np.argmax(np.correlate(segment[:max_lag + len(h)], h, 'valid')))
+    return segment[lag:lag + length]
+
+
+def get_impulse_response_metrics(h_hat_ir, echo_type, audio_in, audio_ref, audio_out,
+                                 settle_time, Fs=16000):
+    """Numeric results for the impulse response tests, against the true echo path.
+
+    Returns a dict with:
+        misalignment: of the h_hat dump taken when adaptation stops (dB)
+        erle_ceiling: -misalignment, the ERLE that filter precision alone allows (dB)
+        erle: measured ERLE, mic vs AEC output over the 3 s before adaptation stops (dB)
+        out_misalignment: of h_hat measured at the AEC output from the impulse injected into the
+            reference 1 s after adaptation stops (dB)
+    """
+    h = get_h(echo_type, normalise=False)
+    misalignment = get_misalignment(h_hat_ir, h)
+
+    start = (settle_time - 3) * Fs
+    end = settle_time * Fs
+    erle = power_db(np.mean(audio_in[start:end] ** 2) / np.mean(audio_out[start:end] ** 2))
+
+    out_ir = get_output_impulse_response(audio_ref, audio_out, (settle_time + 1) * Fs,
+                                         len(h_hat_ir), h)
+    return {'misalignment': misalignment,
+            'erle_ceiling': -misalignment,
+            'erle': erle,
+            'out_misalignment': get_misalignment(out_ir, h),
+            'out_ir': out_ir}
+
+
+def check_impulse_response(metrics, criteria, check_output=True):
+    """Checks the impulse response metrics against criteria['ir_max_misalignment'] (dB).
+
+    The h_hat dump is always checked; the output-measured IR only if check_output is set, as it
+    is limited by the near-end noise when the probe impulse is small.
+
+    Returns (passed, report), where report is a printable summary of the metrics."""
+    max_misalignment = float(criteria['ir_max_misalignment'])
+    checks = [('misalignment', 'h_hat misalignment')]
+    if check_output:
+        checks.append(('out_misalignment', 'output-measured misalignment'))
+
+    lines = ["h_hat misalignment: %.1f dB" % metrics['misalignment'],
+             "ERLE ceiling (-misalignment): %.1f dB" % metrics['erle_ceiling'],
+             "measured ERLE (3 s before adaptation stops): %.1f dB" % metrics['erle'],
+             "output-measured misalignment: %.1f dB%s" % (metrics['out_misalignment'],
+                 "" if check_output else " (not checked, near-end noise limited)")]
+    passed = True
+    for key, name in checks:
+        if metrics[key] > max_misalignment:
+            lines.append("Check failed! %s %.1f dB (> %.1f dB)"
+                         % (name, metrics[key], max_misalignment))
+            passed = False
+    if passed:
+        lines.append("Check passed! (misalignment <= %.1f dB)" % max_misalignment)
+    return passed, "\n".join(lines) + "\n"
 
 
 def check_aec_output(audio_in, audio_ref, audio_out, start_s, end_s, criteria,
