@@ -273,6 +273,26 @@ void filter_adapt_task(const aec_par_tasks_t *s, aec_filter_state_t *main_state,
     }
 }
 
+// Hold the reference active flag for AEC_HOLD_LIMIT_FRAMES after the reference goes inactive. In alt arch mode the
+// held flag also controls the AEC bypass, so that the AEC stays enabled while the IC is bypassed and vice versa.
+static void aec_update_ref_active_hold(aec_shared_filter_state_t *shared_state)
+{
+    if(shared_state->ref_active_flag) {
+        shared_state->ref_active_hold_count = 0;
+        shared_state->ref_active_held_flag = 1;
+    }
+    else if(shared_state->ref_active_hold_count < AEC_HOLD_LIMIT_FRAMES) {
+        shared_state->ref_active_hold_count++;
+        shared_state->ref_active_held_flag = 1;
+    }
+    else {
+        shared_state->ref_active_held_flag = 0;
+    }
+#if ALT_ARCH_MODE
+    shared_state->config_params.aec_core_conf.bypass = !shared_state->ref_active_held_flag;
+#endif
+}
+
 #if defined(__xcore__) || defined(__riscv_xxcore)
 
 #define PAR_THREADS_PJOBS(FUNC, ARR, NUM_THREADS, ...)        \
@@ -320,13 +340,18 @@ void aec_process_frame(
         int32_t (*output_main)[AEC_FRAME_ADVANCE],
         int32_t (*output_shadow)[AEC_FRAME_ADVANCE],
         int32_t (*y_data)[AEC_FRAME_ADVANCE],
-        int32_t (*x_data)[AEC_FRAME_ADVANCE])
+        int32_t (*x_data)[AEC_FRAME_ADVANCE],
+        int32_t *ref_active_flag)
 {
     aec_filter_state_t *main_state = &aec_state->main_state;
     aec_filter_state_t *shadow_state = &aec_state->shadow_state;
     const aec_task_distribution_t *tdist = aec_state->shared_state.tdist;
 
     main_state->shared_state->ref_active_flag = aec_detect_input_activity(x_data, REF_ACTIVE_THRESHOLD, main_state->shared_state->num_x_channels);
+    aec_update_ref_active_hold(main_state->shared_state);
+    if(ref_active_flag != NULL) {
+        *ref_active_flag = main_state->shared_state->ref_active_held_flag;
+    }
 
     // Read number of mic and reference channels. These are specified as part of the configuration when aec_init() is called.
     int num_y_channels = main_state->shared_state->num_y_channels; //Number of mic channels
@@ -550,4 +575,18 @@ void aec_process_frame(
             main_state, shadow_state, tdist->passes_for_2_tasks, ych
         );
     }
+
+#if ALT_ARCH_MODE
+    // The bypassed output above is the windowed and overlap-added mic input, which is not sample aligned with the
+    // mic input. Downstream, the IC needs its mic channels with their original phase relationship preserved, so
+    // overwrite the output with the mic input. y_data may have been overwritten if the frame is processed in-place,
+    // so copy the mic input from the end of prev_y, where aec_frame_init() saved it.
+    if(main_state->shared_state->config_params.aec_core_conf.bypass) {
+        for(int ch=0; ch<num_y_channels; ch++) {
+            vpu_memcpy(&output_main[ch][0],
+                    &main_state->shared_state->prev_y[ch].data[AEC_PROC_FRAME_LENGTH - (2*AEC_FRAME_ADVANCE)],
+                    AEC_FRAME_ADVANCE*sizeof(int32_t));
+        }
+    }
+#endif
 }

@@ -3,6 +3,9 @@
 PROJECT_NAME = lib_voice
 PROJECT_BRIEF = "Voice processing library"
 
+# Library config, including the alternating architecture
+INPUT += ../lib_voice/api/voice_defines.h
+
 # AEC module
 INPUT += ../lib_voice/api/aec
 

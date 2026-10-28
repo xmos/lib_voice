@@ -237,8 +237,17 @@ typedef struct {
      * as a 32bit integer mantissa and exponent.*/
     float_s32_t sum_X_energy[AEC_MAX_X_CHANNELS];
 
-    /** Reference active flag. Indicates if the reference signal is active or not for any x channel.*/
+    /** Reference active flag. Indicates if the reference signal is active or not for any x channel in the current
+     * frame.*/
     int32_t ref_active_flag;
+
+    /** Held reference active flag. Stays set until the reference has been inactive for @ref HOLD_AEC_LIMIT_SECONDS.
+     * This is the flag reported by `aec_process_frame()` and, in @ref ALT_ARCH_MODE, the one that controls the AEC
+     * bypass.*/
+    int32_t ref_active_held_flag;
+
+    /** Number of consecutive frames the reference has been inactive for, saturating at @ref AEC_HOLD_LIMIT_FRAMES.*/
+    int32_t ref_active_hold_count;
 
     /** Structure containing coherence mu calculation related parameters.*/
     coherence_mu_params_t coh_mu_state[AEC_MAX_Y_CHANNELS];

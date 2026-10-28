@@ -99,10 +99,18 @@ def create_task_distribution():
         num_channels = max(int(max_y_channels), int(max_x_channels))
         num_threads = int(threads)
         fp_cfg_h.write(autogen_message + '\n')
-        fp_cfg_h.write(f"#define AEC_MAX_Y_CHANNELS   ({max_y_channels})\n")
-        fp_cfg_h.write(f"#define AEC_MAX_X_CHANNELS   ({max_x_channels})\n")
-        fp_cfg_h.write(f"#define AEC_MAIN_FILTER_PHASES    ({main_filter_phases})\n")
-        fp_cfg_h.write(f"#define AEC_SHADOW_FILTER_PHASES    ({shadow_filter_phases})\n")
+        # voice_conf.h is included before this header, so check any value it sets matches the schedule config
+        cfg_defines = [("AEC_MAX_Y_CHANNELS", max_y_channels),
+                       ("AEC_MAX_X_CHANNELS", max_x_channels),
+                       ("AEC_MAIN_FILTER_PHASES", main_filter_phases),
+                       ("AEC_SHADOW_FILTER_PHASES", shadow_filter_phases)]
+        for name, value in cfg_defines:
+            fp_cfg_h.write(f"#if defined({name}) && ({name} != {value})\n")
+            fp_cfg_h.write(f'#error "{name} set elsewhere (e.g. voice_conf.h) does not match AEC_SCHEDULE_CONFIG ({value})"\n')
+            fp_cfg_h.write( '#endif\n')
+            fp_cfg_h.write(f"#ifndef {name}\n")
+            fp_cfg_h.write(f"#define {name}    ({value})\n")
+            fp_cfg_h.write( '#endif\n')
 
         fp_c.write( autogen_message + '\n')
         fp_c.write( '#include "aec_schedule.h"\n\n')

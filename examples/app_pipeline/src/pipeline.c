@@ -83,20 +83,12 @@ void pipeline_process_frame_thread1(pipeline_state_thread1_t *state, pipeline_me
     pipeline_metadata_t md;
     memcpy(&md, md_input, sizeof(pipeline_metadata_t));
 
-    // Bypass IC if the reference is high in the alt arch mode
-#if ALT_ARCH_MODE
-    if(md.ref_active_flag) {
-        state->ic_state.config_params.bypass = 1;
-    }
-    else {
-        state->ic_state.config_params.bypass = 0;
-    }
-#endif
     /** IC and VNR*/
+    // In alt arch mode the IC bypasses itself while the reference is active
     int32_t ic_output[AP_FRAME_ADVANCE];
     float_s32_t input_vnr_pred;
 
-    ic_process_frame(&state->ic_state, input_data[0], input_data[1], ic_output, &input_vnr_pred);
+    ic_process_frame(&state->ic_state, ic_output, input_data[0], input_data[1], &input_vnr_pred, md.ref_active_flag);
     md.vnr_pred_flag = input_vnr_pred;
 
     /** NS*/

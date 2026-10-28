@@ -30,6 +30,7 @@ FLAGS = [
 ]
 
 INCLUDE_DIRS=[
+    str(MODULE_ROOT / "api"),
     str(MODULE_ROOT / "src" / "ic"),
     str(MODULE_ROOT / "api" / "ic"),
     str(MODULE_ROOT / "api" / "vnr"),
@@ -46,7 +47,7 @@ LIBRARY_DIRS=[
 ]
 
 LIBRARIES = [
-    'lib_voice_module_lib_ic',
+    'lib_voice_module_lib_ic_cffi',
     'lib_voice_module_lib_vnr',
     'lib_xcore_math',
     TFLITE_MICRO_LIB,

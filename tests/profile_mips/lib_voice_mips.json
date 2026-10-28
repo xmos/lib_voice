@@ -1,12 +1,12 @@
 {
   "vx4b": {
     "app_mips_adec": 0.56,
-    "app_mips_aec_alt_arch_1thread": 37.68,
-    "app_mips_aec_alt_arch_2threads": 26.92,
-    "app_mips_aec_std_arch_1thread": 54.73,
-    "app_mips_aec_std_arch_2threads": 34.91,
+    "app_mips_aec_alt_arch_1thread": 38.12,
+    "app_mips_aec_alt_arch_2threads": 27.24,
+    "app_mips_aec_std_arch_1thread": 55.76,
+    "app_mips_aec_std_arch_2threads": 35.63,
     "app_mips_agc": 3.61,
-    "app_mips_ic": 11.36,
+    "app_mips_ic": 11.54,
     "app_mips_ns": 5.18,
     "app_mips_vnr": 1.40
   },

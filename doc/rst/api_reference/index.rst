@@ -18,4 +18,5 @@ This section will provide a comprehensive walkthrough of ``lib_voice``'s APIs, d
   agc
   adec
   stage1
+  alt_arch
 

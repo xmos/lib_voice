@@ -38,7 +38,6 @@ typedef struct {
     aec_conf_t aec_non_de_mode_conf;
     int32_t delay_estimator_enabled;
     int32_t adec_requested_delay_samples; // Delay requested from ADEC in case of a delay change event
-    float_s32_t ref_active_threshold; //-60dB
     int32_t adec_output_delay_estimator_enabled_flag; // to keep persistant across frames
     int32_t de_output_measured_delay_samples; //for logging in test_wav
 } pipeline_state_t;
