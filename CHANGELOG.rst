@@ -30,7 +30,7 @@ UNRELEASED
 
   * Changes to dependencies:
 
-    - ai_tools: Added dependency 1.4.3.dev40
+    - ai_tools: Added dependency 1.4.4
 
     - lib_xcore_math: 3.0.0 -> develop
 
