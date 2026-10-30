@@ -2,7 +2,7 @@ set(LIB_NAME lib_voice)
 set(LIB_VERSION 1.1.0)
 set(LIB_DEPENDENT_MODULES
     "lib_xcore_math(develop)"
-    "ai_tools(v1.4.3.dev40)"
+    "ai_tools(v1.4.4)"
 )
 
 set(LIB_COMPILER_FLAGS

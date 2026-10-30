@@ -1,5 +1,5 @@
 # python_version 3.11
 # pip_version 25.*
 
-xmos-ai-tools==1.4.3.dev40
+xmos-ai-tools==1.4.4
 
