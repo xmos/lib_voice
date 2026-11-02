@@ -9,7 +9,7 @@ if (APP_BUILD_ARCH STREQUAL "vx4b")
     set(ARCH_STR "VX4A")
 else()
     # xs3a and native
-    set(MODEL_TH 0.50)
+    set(MODEL_TH 0.52)
     set(ARCH_STR "XS3A")
 endif()
 
@@ -20,4 +20,3 @@ add_custom_command(
     COMMAND xcore-opt ${MODEL_IN_PATH} -tc ${MODEL_N_CORES} -o ${MODEL_OUT_PATH} --xcore-conv-err-threshold ${MODEL_TH} --xcore-naming-prefix vnr_model_ --xcore-target-arch=${ARCH_STR}
     DEPENDS ${MODEL_IN_PATH}
 )
-
