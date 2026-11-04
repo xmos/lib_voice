@@ -1,5 +1,4 @@
 # python_version 3.11
 # pip_version 25.*
 
-xmos-ai-tools==1.4.4
-
+./tests/xmos_ai_tools-1.4.5-py3-none-manylinux_2_31_x86_64.whl
