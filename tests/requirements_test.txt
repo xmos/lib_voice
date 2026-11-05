@@ -26,7 +26,7 @@ soundfile~=0.13.1
 xscope-fileio==1.3.1
 
 # xmos-ai-tools==1.4.4
-./xmos_ai_tools-1.4.5-py3-none-manylinux_2_31_x86_64.whl
+./xmos_ai_tools-1.4.4-py3-none-manylinux_2_31_x86_64.whl
 
 # Development dependencies
 #
