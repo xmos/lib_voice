@@ -62,13 +62,8 @@ def test_arch(String archName) {
 
   def arch = "--arch ${archName}"
 
-  if (archName == 'vx4b') {
-    // fails loading xinterpreters on ubuntu 22
-    echo "Skipping lib_vnr/vnr_unit_tests on vx4b: fails loading xinterpreters on ubuntu 22"
-  } else {
-    catchError(stageResult: 'FAILURE', catchInterruptions: false) {
-      runSuite("lib_vnr/vnr_unit_tests", arch, "-n 2")
-    }
+  catchError(stageResult: 'FAILURE', catchInterruptions: false) {
+    runSuite("lib_vnr/vnr_unit_tests", arch, "-n 2")
   }
   catchError(stageResult: 'FAILURE', catchInterruptions: false) {
     runSuite("lib_ns", arch, "-n 2")
@@ -383,8 +378,8 @@ pipeline {
                     withVenv {
                       withEnv(["TOOLS_VERSION=${params.TOOLS_VX4_VERSION}"]) {
                         dir("tests") {
-                          xcoreBuild(buildDir: "build_vx4b", archiveBins: false, cmakeOpts: "${speedupOpt()} -DAPP_HW_TARGET=XK-EVK-XU416", jobs: 8)
-                          stash name: 'vx4b_build_xcore', includes: '**/bin/**/*.xe'
+                          xcoreBuild(buildDir: "build_vx4", archiveBins: false, cmakeOpts: "${speedupOpt()} -DAPP_HW_TARGET=XK-EVK-XU416", jobs: 8)
+                          stash name: 'vx4b_build_xcore', includes: '**/bin/**/*.xe, build_vx4/lib_vnr/vnr_unit_tests/src.autogen/vnr_model/trained_model_xcore.tflite'
                         }
                       }
                     }
@@ -425,7 +420,7 @@ pipeline {
                       withTools(params.TOOLS_VERSION) {
                         withVenv {
                           dir("tests") {
-                            xcoreBuild(buildDir: "build_xcommon_cmake_native", archiveBins: false, cmakeOpts: "-DBUILD_NATIVE=ON", jobs: 8)
+                            xcoreBuild(buildDir: "build_native", archiveBins: false, cmakeOpts: "-DBUILD_NATIVE=ON", jobs: 8)
                           }
                         }
                       }
@@ -449,8 +444,8 @@ pipeline {
                     withTools(params.TOOLS_VERSION) {
                       withVenv {
                         dir("tests") {
-                          xcoreBuild(buildDir: "build_xcommon_cmake", archiveBins: false, cmakeOpts: speedupOpt(), jobs: 8)
-                          stash name: 'xcommon_cmake_build_xcore', includes: '**/bin/**/*.xe'
+                          xcoreBuild(buildDir: "build_xs3", archiveBins: false, cmakeOpts: speedupOpt(), jobs: 8)
+                          stash name: 'xcommon_cmake_build_xcore', includes: '**/bin/**/*.xe, build_xs3/lib_vnr/vnr_unit_tests/src.autogen/vnr_model/trained_model_xcore.tflite'
                         }
                       }
                     }
