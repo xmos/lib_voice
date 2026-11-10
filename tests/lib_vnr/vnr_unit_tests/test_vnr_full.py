@@ -5,10 +5,16 @@ import py_voice.modules.vnr as vnr
 import py_vs_c_utils as pvc
 from test_utils import rand_int32_arr, stft
 
-THRESHOLDS = {
-    "xs3a": (0.97, 0.95), 
-    "native": (0.97, 0.95), 
-    "vx4b": (0.96, 0.94)
+GEO_TH = {
+    "xs3a": 0.97,
+    "native": 0.97,
+    "vx4b": 0.96,
+}
+
+ARITH_TH = {
+    "xs3a": 0.95,
+    "native": 0.95,
+    "vx4b": 0.94,
 }
 
 def test_vnr_full(rng, vnr_obj, dut_runner, target):
@@ -45,6 +51,5 @@ def test_vnr_full(rng, vnr_obj, dut_runner, target):
     print("max_diff = ",np.max(np.abs(ref_output_double - dut_output_double)))
     arith_closeness, geo_closeness = pvc.get_closeness_metric(ref_output_double, dut_output_double)
     print(f"arith_closeness = {arith_closeness}, geo_closeness = {geo_closeness}")
-    geo_th, arith_th = THRESHOLDS[target]
-    assert(geo_closeness > geo_th), "inference output geo_closeness below pass threshold"
-    assert(arith_closeness > arith_th), "inference output arith_closeness below pass threshold"
+    assert(geo_closeness > GEO_TH[target]), "inference output geo_closeness below pass threshold"
+    assert(arith_closeness > ARITH_TH[target]), "inference output arith_closeness below pass threshold"
