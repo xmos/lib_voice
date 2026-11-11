@@ -32,7 +32,7 @@ UNRELEASED
 
     - ai_tools: Added dependency 1.4.5
 
-    - lib_xcore_math: 3.0.0 -> develop
+    - lib_xcore_math: 3.0.0 -> 3.0.1
 
 1.1.0
 -----
