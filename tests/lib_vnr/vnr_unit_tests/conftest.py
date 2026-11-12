@@ -14,18 +14,18 @@ vnr_conf = PY_VOICE_ROOT / "config" / "components" / "vnr_only.json"
 
 bin_dir_path = Path(__file__).parent / "bin"
 
-@pytest.fixture(scope="session")
-def model_details():
-    return test_utils.get_model_details(tflite_model)
+@pytest.fixture
+def model_details(target):
+    return test_utils.get_model_details(target)
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def quantise(model_details):
     def _quantise(this_patch):
         return test_utils.quantise_patch(this_patch, model_details[0])
 
     return _quantise
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def dequantise(model_details):
     def _dequantise(output_data):
         return test_utils.dequantise_output(output_data, model_details[1])
