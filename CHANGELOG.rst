@@ -1,8 +1,8 @@
 lib_voice change log
 ====================
 
-UNRELEASED
-----------
+1.2.0
+-----
 
   * ADDED: `aec_h_hat_tap_index()`, for mapping a tap's position in an AEC filter phase's impulse
     response to its position in the stored phase
