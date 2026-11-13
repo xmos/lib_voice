@@ -53,7 +53,7 @@ def test_calc_vnr_pred(target):
 
         # Call Reference calc_vnr_pred()
         _, _ = ifc.calc_vnr_pred(Error_ap)
-        ref_input_vnr_pred = np.append(ref_input_vnr_pred, ifc.input_vnr_pred[0])
+        ref_input_vnr_pred = np.append(ref_input_vnr_pred, ifc.input_vnr_pred)
 
     # Run DUT
     op, _ = run_dut(input_data, xe, target)
