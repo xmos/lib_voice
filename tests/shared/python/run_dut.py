@@ -28,7 +28,7 @@ def get_binary_path(xe, target="xs3a"):
         assert 0, f"{target} target is unsupported"
 
 
-def run_with_xscope_fileio(xe_path, cwd, target="xs3a", timeout=600):
+def run_with_xscope_fileio(xe_path, cwd, target="xs3a", timeout=900):
     """
     Run a .xe image on hardware via xscope_fileio, capturing device stdout.
 
@@ -39,7 +39,7 @@ def run_with_xscope_fileio(xe_path, cwd, target="xs3a", timeout=600):
     cwd : str or Path
         Working directory. Must contain input.bin before launch; output.bin and stdout.txt are created here.
     timeout : int, optional
-        Seconds to wait for an XTAG adapter (XCORE-AI-EXPLORER) via xtagctl.acquire. Default: 600.
+        Seconds to wait for an XTAG adapter (XCORE-AI-EXPLORER) via xtagctl.acquire. Default: 900.
 
     Returns
     -------

@@ -87,7 +87,7 @@ class UnityTestExecutable(pytest.Item):
             if self.sim:
                 test_output = subprocess.check_output(['xsim', self.fspath], text=True, stderr=subprocess.STDOUT)
             elif self.arch in HW_TARGETS:
-                with xtagctl.acquire(HW_TARGETS[self.arch]) as adapter_id:
+                with xtagctl.acquire(HW_TARGETS[self.arch], timeout=900) as adapter_id:
                     test_output = subprocess.check_output(['xrun', '--io', '--adapter-id', adapter_id, self.fspath], text=True, stderr=subprocess.STDOUT)
             else:
                 assert 0, f"Architecture {self.arch} not supported"
