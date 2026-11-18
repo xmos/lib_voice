@@ -39,7 +39,7 @@ def run_with_xscope_fileio(xe_path, cwd, target="xs3a", timeout=3600):
     cwd : str or Path
         Working directory. Must contain input.bin before launch; output.bin and stdout.txt are created here.
     timeout : int, optional
-        Seconds to wait for an XTAG adapter (XCORE-AI-EXPLORER) via xtagctl.acquire. Default: 3600 (some unit tests hold the adapter for ~15 min).
+        Seconds to wait for an XTAG adapter (XCORE-AI-EXPLORER) via xtagctl.acquire. Default: 3600.
 
     Returns
     -------
