@@ -29,6 +29,11 @@ lib_voice change log
   * CHANGED: `ic_process_frame()` arguments reordered to match
     `aec_process_frame()`, and a `ref_active_flag` input added. In
     `ALT_ARCH_MODE` the IC bypasses itself while it is set
+  * FIXED: NS per-bin gain saturating in `ns_priv_rescale_vector()` when a
+    frame's largest bin was suppressed, which over-suppressed other bins by up
+    to 6 dB
+  * FIXED: NS minimum-tracking reset now occurs every 10 frames in step with the
+    Python model, rather than one frame late
 
   * Changes to dependencies:
 
