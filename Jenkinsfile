@@ -279,9 +279,13 @@ pipeline {
       defaultValue: 'v3.5.0',
       description: 'The infr_apps version'
     )
+    choice(
+      name: 'TEST_LEVEL', choices: ['smoke', 'default', 'extended'],
+      description: 'The level of test coverage to run. smoke: no full test or pipeline characterisation; default: full test; extended: full test and pipeline characterisation. The flags below force their test on at any level'
+    )
     booleanParam(name: 'FULL_TEST_OVERRIDE',
                  defaultValue: false,
-                 description: 'Force a full test. This increases the number of iterations/scope in some tests')
+                 description: 'Force a full test. This increases the number of iterations/scope in some tests. Always on for develop, main and release/* branches')
     booleanParam(name: 'PIPELINE_FULL_RUN',
                  defaultValue: false,
                  description: 'Enables pipelines characterisation test which takes 5.0hrs by itself. Normally run nightly')
@@ -289,10 +293,13 @@ pipeline {
   environment {
     REPO = 'lib_voice'
     FULL_TEST = """${(params.FULL_TEST_OVERRIDE
+                    || params.TEST_LEVEL == 'default'
+                    || params.TEST_LEVEL == 'extended'
                     || env.BRANCH_NAME == 'develop'
                     || env.BRANCH_NAME == 'main'
                     || env.BRANCH_NAME ==~ 'release/.*') ? 1 : 0}"""
-    PIPELINE_FULL_RUN = """${params.PIPELINE_FULL_RUN ? 1 : 0}"""
+    PIPELINE_FULL_RUN = """${(params.PIPELINE_FULL_RUN
+                            || params.TEST_LEVEL == 'extended') ? 1 : 0}"""
   }
   options {
     skipDefaultCheckout()
