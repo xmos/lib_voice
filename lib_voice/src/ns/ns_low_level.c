@@ -95,7 +95,7 @@ void ns_priv_update_lambda_hat(ns_state_t * ns, const bfp_s32_t * abs_Y){
 int ns_priv_update_and_test_reset(ns_state_t * ns){
     unsigned count = ns->reset_counter;
     count += NS_FRAME_ADVANCE;
-    if(count > ns->reset_period){
+    if(count >= ns->reset_period){
         ns->reset_counter = count - ns->reset_period;
         return 1;
     } else {

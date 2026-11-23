@@ -225,13 +225,12 @@ void ns_priv_rescale(complex_s32_t * Y, int32_t new_mag, int32_t orig_mag){
 void ns_priv_rescale_vector(bfp_complex_s32_t * Y, bfp_s32_t * new_mag, bfp_s32_t * orig_mag){
 
     // preparing input data
-    left_shift_t lsh = new_mag->hr;
-    vect_s32_shl(new_mag->data, new_mag->data, NS_PROC_FRAME_BINS, lsh);
-    new_mag->exp -= lsh;
-
-    lsh = orig_mag->hr;
+    left_shift_t lsh = orig_mag->hr;
     vect_s32_shl(orig_mag->data, orig_mag->data, NS_PROC_FRAME_BINS, lsh);
     orig_mag->exp -= lsh;
+
+    // new_mag <= orig_mag per bin, so a shared exponent keeps each ratio <= 1 and the divide never saturates
+    bfp_s32_use_exponent(new_mag, orig_mag->exp);
 
     lsh = Y->hr - 2;
     vect_complex_s32_shl(Y->data, Y->data, NS_PROC_FRAME_BINS, lsh);
